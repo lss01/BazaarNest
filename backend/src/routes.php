@@ -129,4 +129,72 @@ return function (App $app) {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     });
+
+
+    $app->get('/api/profile/{username}', function (Request $request, Response $response, array $args) {
+        require __DIR__ . '/../db.php';
+
+        $username = $args['username'];
+
+        try {
+            $stmt = $pdo->prepare("SELECT username, fullname ,email, phone , address FROM users WHERE username = ?");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                $response->getBody()->write(json_encode([
+                    'status' => 'success',
+                    'data' => $user
+                ]));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            } else {
+                $response->getBody()->write(json_encode([
+                    'status' => 'error',
+                    'message' => 'User not found'
+                ]));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+            }
+        } catch (PDOException $e) {
+            error_log($e->getMessage());
+            $response->getBody()->write(json_encode([
+                'status' => 'error',
+                'message' => 'Internal server error'
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    });
+    $app->post('/api/profile/update', function (Request $request, Response $response) {
+        require __DIR__ . '/../db.php';
+        $params = json_decode($request->getBody()->getContents(), true);
+
+        $username = $params['username'] ?? '';
+        $fullname = $params['fullname'] ?? '';
+        $email = $params['email'] ?? '';
+        $phone = $params['phone'] ?? '';
+        $address = $params['address'] ?? '';
+
+        try {
+            $stmt = $pdo->prepare("UPDATE users SET fullname = ?, email = ?, phone = ?, address = ? WHERE username = ?");
+            $stmt->execute([$fullname, $email, $phone, $address, $username]);
+
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'message' => 'Profile updated successfully',
+                'data' => [
+                    'username' => $username,
+                    'fullname' => $fullname,
+                    'email' => $email,
+                    'phone' => $phone,
+                    'address' => $address
+                ]
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (PDOException $e) {
+            $response->getBody()->write(json_encode([
+                'status' => 'error',
+                'message' => 'Failed to update profile'
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    });
 };
