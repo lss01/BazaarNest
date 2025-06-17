@@ -32,12 +32,15 @@ return function (App $app) {
         }
 
         $username = $data['username'] ?? '';
+        $fullname = $data['fullname'] ?? '';
         $email = $data['email'] ?? '';
+        $phone = $data['phone'] ?? '';
+        $address = $data['address'] ?? '';
         $password = $data['password'] ?? '';
         $role = $data['role'] ?? '';
 
         // Validation
-        if (empty($username) || empty($email) || empty($password) || empty($role)) {
+        if (empty($username) || empty($fullname) || empty($email) || empty($phone) || empty($address) || empty($password) || empty($role)) {
             $response->getBody()->write(json_encode([
                 'status' => 'error',
                 'message' => 'All fields are required'
@@ -47,20 +50,20 @@ return function (App $app) {
 
         try {
             // Check for duplicates
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
-            $stmt->execute([$username, $email]);
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? ");
+            $stmt->execute([$username]);
             if ($stmt->fetch()) {
                 $response->getBody()->write(json_encode([
                     'status' => 'error',
-                    'message' => 'Username or email already exists'
+                    'message' => 'Username already exists'
                 ]));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(409);
             }
 
             // Hash password and insert
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$username, $email, $hashedPassword, $role]);
+            $stmt = $pdo->prepare("INSERT INTO users (username, fullname, email, phone, address, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$username, $fullname, $email, $phone, $address, $hashedPassword, $role]);
 
             $response->getBody()->write(json_encode([
                 'status' => 'success',
@@ -81,7 +84,7 @@ return function (App $app) {
     $app->post('/api/login', function (Request $request, Response $response) {
         require __DIR__ . '/../db.php';
 
-        // ✅ Use JSON parse (not form parse)
+        // Use JSON parse (not form parse)
         $data = json_decode($request->getBody()->getContents(), true);
 
         $username = $data['username'] ?? '';
@@ -102,12 +105,12 @@ return function (App $app) {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user && password_verify($password, $user['password'])) {
-                // ✅ Correct success status
+                // Correct success status
                 $response->getBody()->write(json_encode([
                     'status' => 'success',
                     'message' => 'Login successful',
                     'role' => $user['role']
-                    // you can add 'token' here if using JWT later
+                    //can add 'token' here if using JWT later
                 ]));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
             } else {

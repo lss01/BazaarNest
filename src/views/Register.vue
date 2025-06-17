@@ -9,8 +9,23 @@
         </div>
 
         <div class="form-group">
+          <label for="fullName">Full Name</label>
+          <input type="text" id="fullname" v-model="fullname" required placeholder="Enter your full name">
+        </div>
+
+        <div class="form-group">
           <label for="email">Email</label>
           <input type="email" id="email" v-model="email" required placeholder="Enter your email">
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="text" id="phone" v-model="phone" required placeholder="Enter your phone number">
+        </div>
+
+        <div class="form-group">
+          <label for="address">Address</label>
+          <textarea id="address" v-model="address" required placeholder="Enter your address"></textarea>
         </div>
 
         <div class="form-group">
@@ -50,7 +65,10 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const username = ref('')
+const fullname = ref('')
 const email = ref('')
+const phone = ref('')
+const address = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const role = ref('')
@@ -70,7 +88,10 @@ const handleRegister = async () => {
       },
       body: JSON.stringify({
         username: username.value,
+        fullname: fullname.value,
         email: email.value,
+        phone: phone.value,
+        address: address.value,
         password: password.value,
         role: role.value
       })
@@ -121,9 +142,9 @@ const handleRegister = async () => {
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 500px;
+  max-width: 700px;
   position: absolute;
-  top: 50%;
+  top: 75%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
@@ -147,7 +168,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 1rem;
   border: 1px solid #ddd;

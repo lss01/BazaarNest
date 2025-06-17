@@ -19,15 +19,10 @@
     <!-- Search and Filter Section -->
     <div class="search-filter-section">
       <div class="search-bar">
-        <input 
-          type="text" 
-          v-model="searchQuery" 
-          placeholder="Search products..."
-          @input="handleSearch"
-        />
+        <input type="text" v-model="searchQuery" placeholder="Search products..." @input="handleSearch" />
         <button @click="handleSearch">Search</button>
       </div>
-      
+
       <div class="filters">
         <div class="filter-group">
           <label>Category:</label>
@@ -76,7 +71,8 @@
       <div v-else-if="products.length === 0" class="no-results">
         No products found matching your criteria
       </div>
-      <div v-else class="product-card" v-for="product in products" :key="product.id" @click="goToProductDetail(product.id)">
+      <div v-else class="product-card" v-for="product in products" :key="product.id"
+        @click="goToProductDetail(product.id)">
         <img :src="product.image" :alt="product.name" class="product-image">
         <div class="product-info">
           <h3 class="product-name">{{ product.name }}</h3>
@@ -243,7 +239,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .search-bar {
@@ -306,7 +302,7 @@ export default {
 
 .product-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .product-image {
@@ -336,7 +332,8 @@ export default {
   margin: 0;
 }
 
-.loading, .no-results {
+.loading,
+.no-results {
   grid-column: 1 / -1;
   text-align: center;
   padding: 20px;
@@ -390,7 +387,7 @@ export default {
   right: 0;
   background-color: white;
   border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   margin-top: 10px;
   min-width: 150px;
 }
@@ -404,4 +401,4 @@ export default {
 .menu-item:hover {
   background-color: #f5f5f5;
 }
-</style> 
+</style>

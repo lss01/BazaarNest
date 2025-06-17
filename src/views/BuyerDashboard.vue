@@ -7,17 +7,26 @@
         <h3>{{ userName }}</h3>
       </div>
       <nav class="nav-menu">
-        <div 
-          v-for="item in menuItems" 
-          :key="item.id"
-          :class="['nav-item', { active: activeSection === item.id }]"
-          @click="activeSection = item.id"
-        >
+        <div v-for="item in menuItems" :key="item.id" :class="['nav-item', { active: activeSection === item.id }]"
+          @click="activeSection = item.id">
           <i :class="item.icon"></i>
           <span>{{ item.name }}</span>
         </div>
+        <!-- Back to Home button -->
+        <div class="nav-item back-home" @click="goHome">
+          <i class="fas fa-home"></i>
+          <span>Back to Home</span>
+        </div>
       </nav>
+      <!-- Logout button at the bottom -->
+      <div class="logout-section">
+        <button class="logout-btn" @click="logout">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </button>
+      </div>
     </div>
+
 
     <!-- Main Content Area -->
     <div class="main-content">
@@ -87,8 +96,12 @@
         <h2>Edit Profile</h2>
         <div class="profile-form">
           <div class="form-group">
+            <label>Username</label>
+            <input type="text" v-model="profile.username" />
+          </div>
+          <div class="form-group">
             <label>Full Name</label>
-            <input type="text" v-model="profile.fullName" />
+            <input type="text" v-model="profile.fullname" />
           </div>
           <div class="form-group">
             <label>Email</label>
@@ -105,6 +118,7 @@
           <button class="save-btn" @click="saveProfile">Save Profile</button>
         </div>
       </div>
+
     </div>
   </div>
 </template>
@@ -121,7 +135,7 @@ export default {
     return {
       activeSection: 'orders',
       userName: 'John Doe',
-      userAvatar: 'https://via.placeholder.com/100',
+      userAvatar: 'src/assets/picture/profile.jpg',
       menuItems: [
         { id: 'orders', name: 'Orders', icon: 'fas fa-shopping-bag' },
         { id: 'favorites', name: 'Favorites', icon: 'fas fa-heart' },
@@ -133,7 +147,7 @@ export default {
           id: '12345',
           status: 'Delivered',
           productName: 'Handmade Ceramic Mug',
-          productImage: 'https://via.placeholder.com/100',
+          productImage: 'src/assets/picture/Handmade_Ceramic_Mug.jpg',
           quantity: 2,
           total: 49.98,
           date: '2024-03-15'
@@ -145,7 +159,7 @@ export default {
           id: 1,
           name: 'Organic Cotton T-shirt',
           price: 29.99,
-          image: 'https://via.placeholder.com/100'
+          image: 'src/assets/picture/Organic_Cotton_T_shirt.jpg'
         },
         // Add more mock favorites as needed
       ],
@@ -154,10 +168,11 @@ export default {
         twoFactorAuth: false
       },
       profile: {
-        fullName: 'John Doe',
-        email: 'john@example.com',
-        phone: '+1 234 567 8900',
-        address: '123 Main St, City, Country'
+        username: '',
+        fullName: '',
+        email: '',
+        phone: '',
+        address: ''
       }
     }
   },
@@ -194,11 +209,40 @@ export default {
     /**
      * Saves user profile information
      */
-    saveProfile() {
-      // TODO: Implement API call to save profile
-      console.log('Saving profile:', this.profile)
-    }
-  }
+    async fetchProfile() {
+      try {
+        const username = localStorage.getItem('username')
+        if (!username) {
+          throw new Error('No username found in localStorage')
+        }
+        const response = await fetch(`/api/profile?username=${encodeURIComponent(this.profile.username)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+        const data = await response.json();
+        if (data.status === 'success' && data.profile) {
+          this.profile.username = data.profile.username
+          this.profile.fullName = data.profile.fullname
+          this.profile.email = data.profile.email
+          this.profile.phone = data.profile.phone
+          this.profile.address = data.profile.address
+        } else {
+          throw new Error(data.message || 'Profile not found')
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    },
+  },
+  mounted() {
+    // Fetch user profile data when the component is mounted
+    this.fetchProfile()
+  },
 }
 </script>
 
@@ -213,7 +257,7 @@ export default {
   width: 250px;
   background-color: white;
   padding: 20px;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .user-info {
@@ -262,17 +306,19 @@ export default {
   background-color: white;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.orders-grid, .favorites-grid {
+.orders-grid,
+.favorites-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
   margin-top: 20px;
 }
 
-.order-card, .favorite-card {
+.order-card,
+.favorite-card {
   border: 1px solid #eee;
   border-radius: 8px;
   padding: 15px;
@@ -307,7 +353,8 @@ export default {
   border-radius: 4px;
 }
 
-.settings-form, .profile-form {
+.settings-form,
+.profile-form {
   max-width: 500px;
   margin-top: 20px;
 }
@@ -322,7 +369,8 @@ export default {
   font-weight: 500;
 }
 
-.form-group input, .form-group textarea {
+.form-group input,
+.form-group textarea {
   width: 100%;
   padding: 8px;
   border: 1px solid #ddd;
@@ -366,11 +414,11 @@ export default {
   border-radius: 50%;
 }
 
-.toggle-switch input:checked + label {
+.toggle-switch input:checked+label {
   background-color: #4CAF50;
 }
 
-.toggle-switch input:checked + label:before {
+.toggle-switch input:checked+label:before {
   transform: translateX(26px);
 }
 
@@ -401,4 +449,36 @@ export default {
 .remove-btn:hover {
   background-color: #ff1744;
 }
-</style> 
+
+.nav-item.back-home {
+  margin-top: 20px;
+  border-top: 1px solid #eee;
+  padding-top: 16px;
+}
+
+.logout-section {
+  margin-top: auto;
+  padding-top: 350px;
+}
+
+.logout-btn {
+  width: 100%;
+  /* background-color: #ff5252; */
+  color: grey;
+  padding: 12px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background-color 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #ff1744;
+  color: #eee;
+}
+</style>
