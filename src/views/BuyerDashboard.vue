@@ -206,38 +206,73 @@ export default {
       console.log('Saving settings:', this.settings)
     },
 
+    goHome() {
+      this.$router.push({ name: 'home' });
+    },
+
+    logout() {
+      // Clear authentication data
+      localStorage.removeItem('username')
+      localStorage.removeItem('token') // only if you're storing JWTs
+
+      // Redirect to login route
+      this.$router.push({ name: 'login' }) // make sure this route exists
+    },
+
     /**
      * Saves user profile information
      */
     async fetchProfile() {
       try {
         const username = localStorage.getItem('username')
+        // Check if username exists in localStorage
         if (!username) {
           throw new Error('No username found in localStorage')
         }
-        const response = await fetch(`/api/profile?username=${encodeURIComponent(this.profile.username)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await fetch(`/api/profile/${encodeURIComponent(username)}`);
         if (!response.ok) {
           throw new Error('Failed to fetch profile');
         }
+
         const data = await response.json();
-        if (data.status === 'success' && data.profile) {
-          this.profile.username = data.profile.username
-          this.profile.fullName = data.profile.fullname
-          this.profile.email = data.profile.email
-          this.profile.phone = data.profile.phone
-          this.profile.address = data.profile.address
+
+        if (data.status === 'success') {
+          this.profile.username = data.data.username
+          this.profile.fullname = data.data.fullname
+          this.profile.email = data.data.email
+          this.profile.phone = data.data.phone
+          this.profile.address = data.data.address
         } else {
+
           throw new Error(data.message || 'Profile not found')
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
       }
     },
+    async saveProfile() {
+      try {
+        const response = await fetch('/api/profile/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(this.profile)
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+          alert('Profile updated successfully!');
+        } else {
+          throw new Error(data.message || 'Failed to update profile');
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        alert('There was a problem saving your profile.');
+      }
+    },
+
   },
   mounted() {
     // Fetch user profile data when the component is mounted

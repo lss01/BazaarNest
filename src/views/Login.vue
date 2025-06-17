@@ -61,6 +61,7 @@ const handleLogin = async () => {
     if (result.status === 'success') {
       localStorage.setItem('token', result.token)
       localStorage.setItem('userRole', result.role)
+      localStorage.setItem('username', username.value)
       alert('Login successful!')
 
       if (role.value === 'buyer') {
