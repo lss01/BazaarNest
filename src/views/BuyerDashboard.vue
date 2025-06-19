@@ -2,10 +2,11 @@
   <div class="dashboard-container">
     <!-- Navigation Sidebar -->
     <div class="sidebar">
-      <div class="user-info">
-        <img :src="userAvatar" alt="User Avatar" class="avatar" />
+      <div style="text-align: center; margin-top: 20px;">
+        <img :src=" userAvatar|| defaultAvatar" alt="User Avatar" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;" @error="userAvatar = defaultAvatar"/>
         <h3>{{ userName }}</h3>
       </div>
+      <br>
       <nav class="nav-menu">
         <div v-for="item in menuItems" :key="item.id" :class="['nav-item', { active: activeSection === item.id }]"
           @click="activeSection = item.id">
@@ -116,6 +117,9 @@
             <textarea v-model="profile.address"></textarea>
           </div>
           <button class="save-btn" @click="saveProfile">Save Profile</button>
+          <input type="file" id="avatarUpload" @change="handleAvatarUpload" class="avatar-upload"
+            style="display: none;" />
+          <label for="avatarUpload" class="upload-label">Upload Profile Picture</label>
         </div>
       </div>
 
@@ -134,8 +138,9 @@ export default {
   data() {
     return {
       activeSection: 'orders',
-      userName: 'John Doe',
-      userAvatar: 'src/assets/picture/profile.jpg',
+      userAvatar: '',
+      userName: '',
+      defaultAvatar: 'src/assets/picture/profile.jpg',
       menuItems: [
         { id: 'orders', name: 'Orders', icon: 'fas fa-shopping-bag' },
         { id: 'favorites', name: 'Favorites', icon: 'fas fa-heart' },
@@ -213,15 +218,56 @@ export default {
     logout() {
       // Clear authentication data
       localStorage.removeItem('username')
-      localStorage.removeItem('token') // only if you're storing JWTs
+      localStorage.removeItem('token')
 
       // Redirect to login route
-      this.$router.push({ name: 'login' }) // make sure this route exists
+      this.$router.push({ name: 'login' })
     },
 
-    /**
-     * Saves user profile information
-     */
+    async handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const username = localStorage.getItem('username');
+    formData.append('username', username);
+
+    try {
+      const response = await fetch('/api/upload-avatar', {
+        method: 'POST',
+        body: formData
+      });
+
+      const responseText = await response.text();
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Upload failed (non-JSON response):', responseText);
+        alert('Upload failed: Server returned an invalid response:\n' + responseText);
+        return;
+      }
+
+      if (response.ok && result.status === 'success') {
+        localStorage.setItem('userAvatar', result.avatarUrl);
+        this.userAvatar = 'http://localhost:8080' + result.avatarUrl;
+        alert('Profile picture uploaded successfully!');
+      } else {
+        console.error('Upload error response:', result);
+        alert('Upload failed: ' + (result.message || 'Unknown error'));
+      }
+
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      alert('There was a problem uploading your profile picture.');
+    }
+  },
+
+    // Saves user profile information
+
     async fetchProfile() {
       try {
         const username = localStorage.getItem('username')
@@ -237,11 +283,13 @@ export default {
         const data = await response.json();
 
         if (data.status === 'success') {
+          this.userName = data.data.username
           this.profile.username = data.data.username
           this.profile.fullname = data.data.fullname
           this.profile.email = data.data.email
           this.profile.phone = data.data.phone
           this.profile.address = data.data.address
+          this.userAvatar = 'http://localhost:8080' + data.data.avatar;
         } else {
 
           throw new Error(data.message || 'Profile not found')
@@ -277,7 +325,13 @@ export default {
   mounted() {
     // Fetch user profile data when the component is mounted
     this.fetchProfile()
+
+    const savedAvatar = localStorage.getItem('userAvatar');
+    if (savedAvatar && !this.userAvatar) {
+      this.userAvatar = savedAvatar;
+    }
   },
+
 }
 </script>
 
@@ -469,6 +523,23 @@ export default {
 
 .save-btn:hover {
   background-color: #45a049;
+}
+
+.upload-label {
+  display: inline-block;
+  margin-top: 10px;
+  margin-left: 10px;
+  padding: 8px 16px;
+  background-color: #4c90af;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.upload-label:hover {
+  background-color: #4595a0;
 }
 
 .remove-btn {

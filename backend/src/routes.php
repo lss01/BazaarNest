@@ -4,6 +4,18 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 
+function moveUploadedFile($directory, $uploadedFile)
+{
+    $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+    $basename = bin2hex(random_bytes(8));
+    $filename = sprintf('%s.%s', $basename, $extension);
+
+    file_put_contents(__DIR__ . '/../log.txt', 'Writable? ' . (is_writable($directory) ? 'YES' : 'NO') . PHP_EOL, FILE_APPEND);
+    $uploadedFile->moveTo($directory . DIRECTORY_SEPARATOR . $filename);
+
+    return $filename;
+}
+
 return function (App $app) {
     $app->get('/api/test', function (Request $request, Response $response) {
         $data = ["status" => "success"];
@@ -137,7 +149,7 @@ return function (App $app) {
         $username = $args['username'];
 
         try {
-            $stmt = $pdo->prepare("SELECT username, fullname ,email, phone , address FROM users WHERE username = ?");
+            $stmt = $pdo->prepare("SELECT username, fullname ,email, phone , address, avatar FROM users WHERE username = ?");
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -163,6 +175,7 @@ return function (App $app) {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     });
+
     $app->post('/api/profile/update', function (Request $request, Response $response) {
         require __DIR__ . '/../db.php';
         $params = json_decode($request->getBody()->getContents(), true);
@@ -196,5 +209,79 @@ return function (App $app) {
             ]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
+    });
+
+    $app->post('/api/upload-avatar', function ($request, $response) {
+        $directory = __DIR__ . '/uploads/avatars';
+        $uploadedFiles = $request->getUploadedFiles();
+
+        if (empty($uploadedFiles['avatar'])) {
+            $response->getBody()->write(json_encode([
+                'status' => 'error',
+                'message' => 'No file uploaded'
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $avatar = $uploadedFiles['avatar'];
+        if ($avatar->getError() === UPLOAD_ERR_OK) {
+            // Validate MIME type
+            $mimeType = $avatar->getClientMediaType();
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+            if (!in_array($mimeType, $allowedTypes)) {
+                $response->getBody()->write(json_encode([
+                    'status' => 'error',
+                    'message' => 'Invalid image type'
+                ]));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            }
+            if (!is_dir($directory)) {
+                mkdir($directory, 0777, true);
+            }
+
+            if (!is_writable($directory)) {
+                $response->getBody()->write(json_encode([
+                    'status' => 'error',
+                    'message' => 'Upload folder is not writable'
+                ]));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+            }
+
+            // Move the file
+            $filename = moveUploadedFile($directory, $avatar);
+            $avatarUrl = "http://localhost:8080/uploads/avatars/" . $filename;
+
+            $username = $_POST['username'] ?? null;
+
+            if (!$username) {
+                return $response->withJson(['status' => 'error', 'message' => 'Missing username'], 400);
+            }
+
+            // Save the avatar URL to the database
+            try {
+                require __DIR__ . '/../db.php';
+                $stmt = $pdo->prepare("UPDATE users SET avatar = ? WHERE username = ?");
+                $stmt->execute([$avatarUrl, $username]);
+
+                $response->getBody()->write(json_encode([
+                    'status' => 'success',
+                    'avatarUrl' => $avatarUrl
+                ]));
+
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            } catch (PDOException $e) {
+                $response->getBody()->write(json_encode([
+                    'status' => 'error',
+                    'message' => 'DB error: ' . $e->getMessage()
+                ]));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+            }
+        }
+
+        $response->getBody()->write(json_encode([
+            'status' => 'error',
+            'message' => 'Failed to upload file'
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     });
 };

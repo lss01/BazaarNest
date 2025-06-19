@@ -6,13 +6,8 @@
         <img :src="currentImage" :alt="product.name">
       </div>
       <div class="thumbnail-list">
-        <div 
-          v-for="(image, index) in product.images" 
-          :key="index"
-          class="thumbnail"
-          :class="{ active: currentImageIndex === index }"
-          @click="currentImageIndex = index"
-        >
+        <div v-for="(image, index) in product.images" :key="index" class="thumbnail"
+          :class="{ active: currentImageIndex === index }" @click="currentImageIndex = index">
           <img :src="image" :alt="`${product.name} - Image ${index + 1}`">
         </div>
       </div>
@@ -22,7 +17,7 @@
     <div class="product-info">
       <h1 class="product-title">{{ product.name }}</h1>
       <p class="product-price">${{ product.price }}</p>
-      
+
       <!-- Add to Cart Section -->
       <div class="add-to-cart-section">
         <div class="quantity-control">
@@ -118,9 +113,9 @@ export default {
         price: 24.99,
         description: 'Beautiful handcrafted ceramic mug made with love and attention to detail. Each piece is unique and perfect for your morning coffee or tea.',
         images: [
-          'https://via.placeholder.com/600x400',
-          'https://via.placeholder.com/600x400',
-          'https://via.placeholder.com/600x400'
+          'src/assets/picture/Handmade_Ceramic_Mug.jpg',
+          'src/assets/picture/Handmade_Ceramic_Mug.jpg',
+          'src/assets/picture/Handmade_Ceramic_Mug.jpg'
         ],
         seller: {
           name: 'Artisan Pottery',
@@ -133,7 +128,7 @@ export default {
           {
             id: 1,
             userName: 'John Doe',
-            userAvatar: 'https://via.placeholder.com/50',
+            userAvatar: 'src/assets/picture/profile.jpg',
             rating: 5,
             content: 'Absolutely love this mug! The craftsmanship is amazing.',
             date: '2024-03-15'
@@ -141,7 +136,7 @@ export default {
           {
             id: 2,
             userName: 'Jane Smith',
-            userAvatar: 'https://via.placeholder.com/50',
+            userAvatar: 'src/assets/picture/profile.jpg',
             rating: 4,
             content: 'Great quality and beautiful design.',
             date: '2024-03-10'
@@ -203,13 +198,13 @@ export default {
         sellerName: this.product.seller.name,
         quantity: this.quantity
       }
-      
+
       // Add to cart
       this.cartStore.addItem(cartItem)
-      
+
       // Show success message
       alert('Product added to cart!')
-      
+
       // Reset quantity
       this.quantity = 1
     },
@@ -437,7 +432,7 @@ export default {
 
 .similar-product-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .similar-product-card img {
@@ -463,9 +458,9 @@ export default {
   .product-detail-container {
     grid-template-columns: 1fr;
   }
-  
+
   .product-images {
     position: static;
   }
 }
-</style> 
+</style>
