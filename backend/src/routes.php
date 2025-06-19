@@ -198,7 +198,8 @@ return function (App $app) {
                     'fullname' => $fullname,
                     'email' => $email,
                     'phone' => $phone,
-                    'address' => $address
+                    'address' => $address,
+                    'avatar' => $avatarUrl
                 ]
             ]));
             return $response->withHeader('Content-Type', 'application/json');
@@ -212,7 +213,7 @@ return function (App $app) {
     });
 
     $app->post('/api/upload-avatar', function ($request, $response) {
-        $directory = __DIR__ . '/uploads/avatars';
+        $directory = __DIR__ . '/../uploads/avatars';
         $uploadedFiles = $request->getUploadedFiles();
 
         if (empty($uploadedFiles['avatar'])) {
@@ -249,7 +250,7 @@ return function (App $app) {
 
             // Move the file
             $filename = moveUploadedFile($directory, $avatar);
-            $avatarUrl = "http://localhost:8080/uploads/avatars/" . $filename;
+            $avatarUrl = "http://localhost:8080/src/uploads/avatars/" . $filename;
 
             $username = $_POST['username'] ?? null;
 
