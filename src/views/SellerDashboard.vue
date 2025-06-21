@@ -16,6 +16,14 @@
           <i :class="item.icon"></i>
           <span>{{ item.name }}</span>
         </div>
+        <!-- Logout button at the bottom -->
+      <div class="logout-section">
+        <button class="logout-btn" @click="logout">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </button>
+      </div>
+
       </nav>
     </div>
 
@@ -49,7 +57,7 @@
           </div>
         </div>
       </div>
-
+      
       <!-- Orders Tracking Section -->
       <div v-if="activeSection === 'orders'" class="section">
         <h2>Order Tracking</h2>
@@ -314,6 +322,11 @@ export default {
         const [removed] = this.storeLayout.splice(data.index, 1)
         this.storeLayout.splice(newIndex, 0, removed)
       }
+    },
+    logout() {
+      localStorage.removeItem('username');
+      localStorage.removeItem('token');
+      this.$router.push({ name: 'login' });
     },
 
     /**
@@ -610,5 +623,30 @@ export default {
   background-color: #4CAF50;
   color: white;
   cursor: pointer;
+}
+.logout-section {
+  margin-top: auto;
+  padding-top: 350px;
+}
+
+.logout-btn {
+  width: 100%;
+  /* background-color: #ff5252; */
+  color: grey;
+  padding: 12px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background-color 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #ff1744;
+  color: #eee;
 }
 </style> 

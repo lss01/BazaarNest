@@ -3,12 +3,12 @@
     <!-- Product Image Carousel -->
     <div class="product-images">
       <div class="main-image">
-        <img :src="currentImage" :alt="product.name">
+        <img :src="currentImage" :alt="product.name" />
       </div>
       <div class="thumbnail-list">
         <div v-for="(image, index) in product.images" :key="index" class="thumbnail"
           :class="{ active: currentImageIndex === index }" @click="currentImageIndex = index">
-          <img :src="image" :alt="`${product.name} - Image ${index + 1}`">
+          <img :src="image" :alt="`${product.name} - Image ${index + 1}`" />
         </div>
       </div>
     </div>
@@ -42,7 +42,8 @@
 
       <!-- Seller Card -->
       <div class="seller-card" @click="navigateToStore" style="cursor: pointer;">
-        <img :src="product.seller.avatar" :alt="product.seller.name" class="seller-avatar">
+        <img :src="product.seller.avatar" :alt="product.seller.name" class="seller-avatar"
+             @error="product.seller.avatar = defaultAvatar" />
         <div class="seller-info">
           <h3>{{ product.seller.name }}</h3>
           <p>{{ product.seller.description }}</p>
@@ -59,7 +60,8 @@
         <div class="review-list">
           <div v-for="review in product.reviews" :key="review.id" class="review-card">
             <div class="review-header">
-              <img :src="review.userAvatar" :alt="review.userName" class="reviewer-avatar">
+              <img :src="review.userAvatar" :alt="review.userName" class="reviewer-avatar"
+                   @error="review.userAvatar = defaultAvatar" />
               <div class="reviewer-info">
                 <h4>{{ review.userName }}</h4>
                 <div class="rating">
@@ -78,7 +80,7 @@
         <h2>Similar Products</h2>
         <div class="similar-products-grid">
           <div v-for="item in similarProducts" :key="item.id" class="similar-product-card">
-            <img :src="item.image" :alt="item.name">
+            <img :src="item.image" :alt="item.name" />
             <h3>{{ item.name }}</h3>
             <p class="price">${{ item.price }}</p>
           </div>
@@ -92,10 +94,6 @@
 import { useCartStore } from '../stores/cart'
 import { useRouter } from 'vue-router'
 
-/**
- * ProductDetail component displays detailed information about a specific product
- * including image carousel, product details, seller information, reviews, and similar products
- */
 export default {
   name: 'ProductDetail',
   setup() {
@@ -107,6 +105,7 @@ export default {
     return {
       currentImageIndex: 0,
       quantity: 1,
+      defaultAvatar: 'src/assets/picture/profile.jpg',
       product: {
         id: 1,
         name: 'Handmade Ceramic Mug',
@@ -118,6 +117,7 @@ export default {
           'src/assets/picture/Handmade_Ceramic_Mug.jpg'
         ],
         seller: {
+          id: 101,
           name: 'Artisan Pottery',
           avatar: 'https://via.placeholder.com/100',
           description: 'Creating unique ceramic pieces since 2010',
@@ -171,25 +171,13 @@ export default {
     }
   },
   methods: {
-    /**
-     * Increase the quantity of the product
-     */
     increaseQuantity() {
       this.quantity++
     },
-    /**
-     * Decrease the quantity of the product
-     */
     decreaseQuantity() {
-      if (this.quantity > 1) {
-        this.quantity--
-      }
+      if (this.quantity > 1) this.quantity--
     },
-    /**
-     * Add the product to the cart
-     */
     addToCart() {
-      // Create a cart item object
       const cartItem = {
         id: this.product.id,
         name: this.product.name,
@@ -198,25 +186,21 @@ export default {
         sellerName: this.product.seller.name,
         quantity: this.quantity
       }
-
-      // Add to cart
       this.cartStore.addItem(cartItem)
-
-      // Show success message
       alert('Product added to cart!')
-
-      // Reset quantity
       this.quantity = 1
     },
-    /**
-     * Navigate to the store page
-     */
     navigateToStore() {
-      this.router.push(`/store/${this.product.seller.id}`)
+      if (this.product.seller.id) {
+        this.router.push(`/store/${this.product.seller.id}`)
+      } else {
+        alert('Seller information not available.')
+      }
     }
   }
 }
 </script>
+
 
 <style scoped>
 .product-detail-container {

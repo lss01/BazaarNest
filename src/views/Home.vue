@@ -19,14 +19,14 @@
     <!-- Search and Filter Section -->
     <div class="search-filter-section">
       <div class="search-bar">
-        <input type="text" v-model="searchQuery" placeholder="Search products..." @input="handleSearch" />
+        <input type="text" v-model="searchQuery" placeholder="Search products..." />
         <button @click="handleSearch">Search</button>
       </div>
 
       <div class="filters">
         <div class="filter-group">
           <label>Category:</label>
-          <select v-model="selectedCategory">
+          <select v-model="selectedCategory" @change="handleSearch">
             <option value="">All Categories</option>
             <option v-for="category in categories" :key="category" :value="category">
               {{ category }}
@@ -36,7 +36,7 @@
 
         <div class="filter-group">
           <label>Price Range:</label>
-          <select v-model="priceRange">
+          <select v-model="priceRange" @change="handleSearch">
             <option value="">Any Price</option>
             <option value="0-50">$0 - $50</option>
             <option value="51-100">$51 - $100</option>
@@ -45,7 +45,7 @@
           </select>
         </div>
 
-        <div class="filter-group">
+        <!-- <div class="filter-group">
           <label>
             <input type="checkbox" v-model="filters.local"> Local Sellers
           </label>
@@ -61,7 +61,7 @@
           <label>
             <input type="checkbox" v-model="filters.sustainable"> Sustainable
           </label>
-        </div>
+        </div> -->
       </div>
     </div>
 
@@ -129,15 +129,68 @@ export default {
      */
     async handleSearch() {
       this.loading = true
+      this.loading = true;
       try {
-        // TODO: Implement actual API call
-        // This is a mock implementation
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        this.products = this.getMockProducts()
+        const category = this.selectedCategory || '0';
+        const price = this.priceRange || '0';
+        const search = this.searchQuery ? encodeURIComponent(this.searchQuery) : '';
+        const response = await fetch(`/api/products/${encodeURIComponent(category)}/${encodeURIComponent(price)}?search=${search}`);
+
+        if (!response.ok) throw new Error('Failed to fetch products');
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          this.products = [];
+          console.log('Products fetched successfully:', data.products);
+          this.products = data.products || [];
+          if (this.products.length === 0) {
+            console.warn('No products found for the selected criteria');
+            this.loading = false;
+          } else {
+            this.loading = false;
+          }
+
+        } else {
+          this.products = [];
+          console.warn('No products found for the selected criteria');
+          throw new Error(data.message || 'Profile not found');
+        }
       } catch (error) {
-        console.error('Error fetching products:', error)
+        console.error('Error fetching products:', error);
       } finally {
-        this.loading = false
+        this.loading = false;
+      }
+    },
+    async fetchProducts() {
+      this.loading = true;
+      try {
+        const category = this.selectedCategory || '0';
+        const price = this.priceRange || '0';
+        const response = await fetch(`/api/products/${encodeURIComponent(category)}/${encodeURIComponent(price)}`);
+
+        if (!response.ok) throw new Error('Failed to fetch products');
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          this.products = [];
+          console.log('Products fetched successfully:', data.products);
+          this.products = data.products || [];
+          if (this.products.length === 0) {
+            console.warn('No products found for the selected criteria');
+            this.loading = false;
+          } else {
+            this.loading = false;
+          }
+
+        } else {
+          this.products = [];
+          console.warn('No products found for the selected criteria');
+          throw new Error(data.message || 'Profile not found');
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
       }
     },
 
@@ -215,8 +268,9 @@ export default {
     }
   },
   mounted() {
+    localStorage.getItem('avatar') && (this.userAvatar = "../backend/src/uploads/avatars/" + localStorage.getItem('avatar'))
     // Load initial products when component is mounted
-    this.handleSearch()
+    this.fetchProducts()
   }
 }
 </script>

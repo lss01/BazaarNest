@@ -121,7 +121,8 @@ return function (App $app) {
                 $response->getBody()->write(json_encode([
                     'status' => 'success',
                     'message' => 'Login successful',
-                    'role' => $user['role']
+                    'role' => $user['role'],
+                    'avatar' => $user['avatar'] ?? null
                     //can add 'token' here if using JWT later
                 ]));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
@@ -213,7 +214,7 @@ return function (App $app) {
     });
 
     $app->post('/api/upload-avatar', function ($request, $response) {
-        $directory = __DIR__ . '/../uploads/avatars';
+        $uploadDir = __DIR__ . '/../src/uploads/avatars';
         $uploadedFiles = $request->getUploadedFiles();
 
         if (empty($uploadedFiles['avatar'])) {
@@ -226,57 +227,40 @@ return function (App $app) {
 
         $avatar = $uploadedFiles['avatar'];
         if ($avatar->getError() === UPLOAD_ERR_OK) {
-            // Validate MIME type
-            $mimeType = $avatar->getClientMediaType();
             $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-            if (!in_array($mimeType, $allowedTypes)) {
+            if (!in_array($avatar->getClientMediaType(), $allowedTypes)) {
                 $response->getBody()->write(json_encode([
                     'status' => 'error',
                     'message' => 'Invalid image type'
                 ]));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
-            if (!is_dir($directory)) {
-                mkdir($directory, 0777, true);
+
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
             }
 
-            if (!is_writable($directory)) {
-                $response->getBody()->write(json_encode([
-                    'status' => 'error',
-                    'message' => 'Upload folder is not writable'
-                ]));
-                return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
-            }
-
-            // Move the file
-            $filename = moveUploadedFile($directory, $avatar);
-            $avatarUrl = "http://localhost:8080/src/uploads/avatars/" . $filename;
+            $filename = uniqid() . '_' . $avatar->getClientFilename();
+            $avatar->moveTo($uploadDir . DIRECTORY_SEPARATOR . $filename);
 
             $username = $_POST['username'] ?? null;
-
             if (!$username) {
-                return $response->withJson(['status' => 'error', 'message' => 'Missing username'], 400);
-            }
-
-            // Save the avatar URL to the database
-            try {
-                require __DIR__ . '/../db.php';
-                $stmt = $pdo->prepare("UPDATE users SET avatar = ? WHERE username = ?");
-                $stmt->execute([$avatarUrl, $username]);
-
-                $response->getBody()->write(json_encode([
-                    'status' => 'success',
-                    'avatarUrl' => $avatarUrl
-                ]));
-
-                return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
-            } catch (PDOException $e) {
                 $response->getBody()->write(json_encode([
                     'status' => 'error',
-                    'message' => 'DB error: ' . $e->getMessage()
+                    'message' => 'Missing username'
                 ]));
-                return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
             }
+
+            require __DIR__ . '/../db.php';
+            $stmt = $pdo->prepare("UPDATE users SET avatar = ? WHERE username = ?");
+            $stmt->execute([$filename, $username]);
+
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'avatarUrl' => $filename
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
         }
 
         $response->getBody()->write(json_encode([
@@ -284,5 +268,178 @@ return function (App $app) {
             'message' => 'Failed to upload file'
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+    });
+
+    $app->post('/api/orders', function (Request $request, Response $response) {
+        require __DIR__ . '/../db.php';
+
+        $data = json_decode($request->getBody()->getContents(), true);
+        $userId = $data['user_id'] ?? null;
+        $totalPrice = $data['total_price'] ?? 0;
+        $items = $data['items'] ?? [];
+
+        if (!$userId || empty($items)) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Invalid input']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            $stmt = $pdo->prepare("INSERT INTO orders (id, total_price) VALUES (?, ?)");
+            $stmt->execute([$userId, $totalPrice]);
+            $orderId = $pdo->lastInsertId();
+
+            $itemStmt = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
+
+            foreach ($items as $item) {
+                $itemStmt->execute([$orderId, $item['product_id'], $item['quantity'], $item['price']]);
+            }
+
+            $pdo->commit();
+
+            $response->getBody()->write(json_encode(['status' => 'success', 'order_id' => $orderId]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Order creation failed']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    });
+    $app->get('/api/orders/{user_id}', function (Request $request, Response $response, array $args) {
+        require __DIR__ . '/../db.php';
+        $userId = $args['user_id'];
+
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
+            $stmt->execute([$userId]);
+            $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $response->getBody()->write(json_encode(['status' => 'success', 'orders' => $orders]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (PDOException $e) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Failed to fetch orders']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    });
+    $app->get('/api/order/{order_id}', function (Request $request, Response $response, array $args) {
+        require __DIR__ . '/../db.php';
+        $orderId = $args['order_id'];
+
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM orders WHERE order_id = ?");
+            $stmt->execute([$orderId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order) {
+                $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Order not found']));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+            }
+
+            $itemsStmt = $pdo->prepare("SELECT * FROM order_items WHERE order_id = ?");
+            $itemsStmt->execute([$orderId]);
+            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'order' => $order,
+                'items' => $items
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (PDOException $e) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Failed to fetch order']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    });
+    $app->put('/api/order/{order_id}/status', function (Request $request, Response $response, array $args) {
+        require __DIR__ . '/../db.php';
+        $orderId = $args['order_id'];
+        $data = json_decode($request->getBody()->getContents(), true);
+        $status = $data['status'] ?? '';
+
+        $validStatuses = ['pending', 'shipped', 'completed'];
+        if (!in_array($status, $validStatuses)) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Invalid status']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        try {
+            $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
+            $stmt->execute([$status, $orderId]);
+
+            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Status updated']));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (PDOException $e) {
+            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Failed to update status']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    });
+
+    $app->get('/api/products/{category}/{priceRange}', function ($request, $response, $args) {
+        require __DIR__ . '/../db.php';
+        $category = $args['category'];
+        $priceRange = $args['priceRange'];
+
+        $queryParams = $request->getQueryParams();
+        $search = isset($queryParams['search']) ? '%' . $queryParams['search'] . '%' : null;
+
+        $sql = "SELECT
+                    p.product_id AS id,
+                    p.name,
+                    p.description,
+                    p.price,
+                    p.image_url AS image,
+                    u.fullname AS sellerName
+                FROM products p
+                JOIN users u ON p.vendor_id = u.id";
+
+        $conditions = [];
+        $bindings = [];
+
+        if ($search) {
+            $conditions[] = "p.name LIKE :search OR p.description LIKE :search";
+            $bindings[':search'] = $search;
+        }
+
+        if ($category != 0) {
+            $sql .= " AND p.category = :category";
+            $bindings[':category'] = $category;
+        }
+
+        if ($priceRange != 0) {
+            if ($priceRange === '0-50') {
+                $sql .= " AND p.price BETWEEN 0 AND 50";
+            } elseif ($priceRange === '51-100') {
+                $sql .= " AND p.price BETWEEN 51 AND 100";
+            } elseif ($priceRange === '101-200') {
+                $sql .= " AND p.price BETWEEN 101 AND 200";
+            } elseif ($priceRange === '201+') {
+                $sql .= " AND p.price >= 201";
+            }
+        }
+
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(" AND ", $conditions);
+        }
+
+        $stmt = $pdo->prepare($sql);
+        if (isset($bindings)) {
+            $stmt->execute($bindings);
+        }
+        $products = $stmt->fetchAll();
+
+        if ($products) {
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'products' => $products
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        } else {
+            $response->getBody()->write(json_encode([
+                'status' => 'error',
+                'message' => 'No products found'
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        }
     });
 };

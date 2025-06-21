@@ -1,7 +1,7 @@
 <template>
   <div class="cart-container">
     <h1 class="cart-title">Shopping Cart</h1>
-    
+
     <div v-if="cartStore.items.length === 0" class="empty-cart">
       <i class="fas fa-shopping-cart"></i>
       <p>Your cart is empty</p>
@@ -76,42 +76,37 @@ export default {
     const cartStore = useCartStore()
     return { cartStore }
   },
+  mounted() {
+    const username = localStorage.getItem('username')
+    if (username) {
+      this.cartStore.fetchCart(username)
+    }
+  },
   methods: {
-    /**
-     * Increase the quantity of an item
-     * @param {Object} item - The cart item to update
-     */
     increaseQuantity(item) {
-      this.cartStore.updateQuantity(item.id, item.quantity + 1)
-    },
-    /**
-     * Decrease the quantity of an item
-     * @param {Object} item - The cart item to update
-     */
-    decreaseQuantity(item) {
-      if (item.quantity > 1) {
-        this.cartStore.updateQuantity(item.id, item.quantity - 1)
+      const username = localStorage.getItem('username')
+      if (username) {
+        this.cartStore.updateQuantity(item.id, item.quantity + 1, username)
       }
     },
-    /**
-     * Remove an item from the cart
-     * @param {Object} item - The cart item to remove
-     */
-    removeItem(item) {
-      this.cartStore.removeItem(item.id)
+    decreaseQuantity(item) {
+      const username = localStorage.getItem('username')
+      if (item.quantity > 1 && username) {
+        this.cartStore.updateQuantity(item.id, item.quantity - 1, username)
+      }
     },
-    /**
-     * Navigate to the home page
-     */
+    removeItem(item) {
+      const username = localStorage.getItem('username')
+      if (username) {
+        this.cartStore.removeItem(item.id, username)
+      }
+    },
     goToHome() {
       this.$router.push('/')
     },
-    /**
-     * Handle checkout process
-     */
     checkout() {
-      // TODO: Implement checkout logic
       console.log('Proceeding to checkout...')
+      // Extend this method to handle actual checkout logic
     }
   }
 }

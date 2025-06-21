@@ -70,28 +70,6 @@
         </div>
       </div>
 
-      <!-- Account Settings Section -->
-      <div v-if="activeSection === 'settings'" class="section">
-        <h2>Account Settings</h2>
-        <div class="settings-form">
-          <div class="form-group">
-            <label>Email Notifications</label>
-            <div class="toggle-switch">
-              <input type="checkbox" v-model="settings.emailNotifications" id="email-notifications">
-              <label for="email-notifications"></label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Two-Factor Authentication</label>
-            <div class="toggle-switch">
-              <input type="checkbox" v-model="settings.twoFactorAuth" id="two-factor">
-              <label for="two-factor"></label>
-            </div>
-          </div>
-          <button class="save-btn" @click="saveSettings">Save Settings</button>
-        </div>
-      </div>
-
       <!-- Profile Section -->
       <div v-if="activeSection === 'profile'" class="section">
         <h2>Edit Profile</h2>
@@ -131,9 +109,9 @@
 /**
  * BuyerDashboard component
  * Provides a comprehensive dashboard for buyers including order history,
- * favorite products, account settings, and profile management
+ * favorite products and profile management
  */
-export default {
+ export default {
   name: 'BuyerDashboard',
   data() {
     return {
@@ -144,34 +122,10 @@ export default {
       menuItems: [
         { id: 'orders', name: 'Orders', icon: 'fas fa-shopping-bag' },
         { id: 'favorites', name: 'Favorites', icon: 'fas fa-heart' },
-        { id: 'settings', name: 'Settings', icon: 'fas fa-cog' },
         { id: 'profile', name: 'Profile', icon: 'fas fa-user' }
       ],
-      orders: [
-        {
-          id: '12345',
-          status: 'Delivered',
-          productName: 'Handmade Ceramic Mug',
-          productImage: 'src/assets/picture/Handmade_Ceramic_Mug.jpg',
-          quantity: 2,
-          total: 49.98,
-          date: '2024-03-15'
-        },
-        // Add more mock orders as needed
-      ],
-      favorites: [
-        {
-          id: 1,
-          name: 'Organic Cotton T-shirt',
-          price: 29.99,
-          image: 'src/assets/picture/Organic_Cotton_T_shirt.jpg'
-        },
-        // Add more mock favorites as needed
-      ],
-      settings: {
-        emailNotifications: true,
-        twoFactorAuth: false
-      },
+      orders: [/* mock orders */],
+      favorites: [/* mock favorites */],
       profile: {
         username: '',
         fullName: '',
@@ -182,33 +136,16 @@ export default {
     }
   },
   methods: {
-    /**
-     * Formats date to a readable string
-     * @param {string} date - Date string to format
-     * @returns {string} Formatted date string
-     */
     formatDate(date) {
       return new Date(date).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
-      })
+      });
     },
 
-    /**
-     * Removes a product from favorites
-     * @param {number} productId - ID of the product to remove
-     */
     removeFavorite(productId) {
-      this.favorites = this.favorites.filter(product => product.id !== productId)
-    },
-
-    /**
-     * Saves user settings
-     */
-    saveSettings() {
-      // TODO: Implement API call to save settings
-      console.log('Saving settings:', this.settings)
+      this.favorites = this.favorites.filter(product => product.id !== productId);
     },
 
     goHome() {
@@ -216,95 +153,87 @@ export default {
     },
 
     logout() {
-      // Clear authentication data
-      localStorage.removeItem('username')
-      localStorage.removeItem('token')
-
-      // Redirect to login route
-      this.$router.push({ name: 'login' })
+      localStorage.removeItem('username');
+      localStorage.removeItem('token');
+      this.$router.push({ name: 'login' });
     },
 
     async handleAvatarUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+      const file = event.target.files[0];
+      if (!file) return;
 
-    const formData = new FormData();
-    formData.append('avatar', file);
+      const formData = new FormData();
+      formData.append('avatar', file);
 
-    const username = localStorage.getItem('username');
-    formData.append('username', username);
+      const username = localStorage.getItem('username');
+      formData.append('username', username);
 
-    try {
-      const response = await fetch('/api/upload-avatar', {
-        method: 'POST',
-        body: formData
-      });
-
-      const responseText = await response.text();
-
-      let result;
       try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Upload failed (non-JSON response):', responseText);
-        alert('Upload failed: Server returned an invalid response:\n' + responseText);
-        return;
+        const response = await fetch('/api/upload-avatar', {
+          method: 'POST',
+          body: formData
+        });
+
+        const responseText = await response.text();
+        let result;
+
+        try {
+          result = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Upload failed (non-JSON):', responseText);
+          alert('Upload failed: Invalid server response.');
+          return;
+        }
+
+        if (response.ok && result.status === 'success') {
+          const avatarUrl = result.avatarUrl;
+          localStorage.setItem('avatar', avatarUrl);
+          this.userAvatar = "../backend/src/uploads/avatars/" + avatarUrl;
+          alert('Profile picture uploaded successfully!');
+        } else {
+          console.error('Upload error response:', result);
+          alert('Upload failed: ' + (result.message || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Avatar upload error:', error);
+        alert('There was a problem uploading your profile picture.');
       }
-
-      if (response.ok && result.status === 'success') {
-        localStorage.setItem('userAvatar', result.avatarUrl);
-        this.userAvatar = 'http://localhost:8080' + result.avatarUrl;
-        alert('Profile picture uploaded successfully!');
-      } else {
-        console.error('Upload error response:', result);
-        alert('Upload failed: ' + (result.message || 'Unknown error'));
-      }
-
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      alert('There was a problem uploading your profile picture.');
-    }
-  },
-
-    // Saves user profile information
+    },
 
     async fetchProfile() {
       try {
-        const username = localStorage.getItem('username')
-        // Check if username exists in localStorage
-        if (!username) {
-          throw new Error('No username found in localStorage')
-        }
+        const username = localStorage.getItem('username');
+        if (!username) throw new Error('No username found');
+
         const response = await fetch(`/api/profile/${encodeURIComponent(username)}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile');
-        }
+        if (!response.ok) throw new Error('Failed to fetch profile');
 
         const data = await response.json();
 
         if (data.status === 'success') {
-          this.userName = data.data.username
-          this.profile.username = data.data.username
-          this.profile.fullname = data.data.fullname
-          this.profile.email = data.data.email
-          this.profile.phone = data.data.phone
-          this.profile.address = data.data.address
-          this.userAvatar = 'http://localhost:8080' + data.data.avatar;
-        } else {
+          this.userName = data.data.username;
+          this.profile.username = data.data.username;
+          this.profile.fullname = data.data.fullname;
+          this.profile.email = data.data.email;
+          this.profile.phone = data.data.phone;
+          this.profile.address = data.data.address;
 
-          throw new Error(data.message || 'Profile not found')
+          if (data.data.avatar) {
+            this.userAvatar = "../backend/src/uploads/avatars/" + data.data.avatar;
+          }
+        } else {
+          throw new Error(data.message || 'Profile not found');
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
       }
     },
+
     async saveProfile() {
       try {
         const response = await fetch('/api/profile/update', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.profile)
         });
 
@@ -319,17 +248,12 @@ export default {
         console.error('Error updating profile:', error);
         alert('There was a problem saving your profile.');
       }
-    },
-
+    }
   },
   mounted() {
-    // Fetch user profile data when the component is mounted
-    this.fetchProfile()
+    this.fetchProfile();
 
-    const savedAvatar = localStorage.getItem('userAvatar');
-    if (savedAvatar && !this.userAvatar) {
-      this.userAvatar = savedAvatar;
-    }
+    localStorage.getItem('avatar') && (this.userAvatar = "../backend/src/uploads/avatars/" + localStorage.getItem('avatar'))
   },
 
 }
@@ -442,7 +366,7 @@ export default {
   border-radius: 4px;
 }
 
-.settings-form,
+
 .profile-form {
   max-width: 500px;
   margin-top: 20px;
@@ -466,50 +390,6 @@ export default {
   border-radius: 4px;
 }
 
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-switch label {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 34px;
-}
-
-.toggle-switch label:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-}
-
-.toggle-switch input:checked+label {
-  background-color: #4CAF50;
-}
-
-.toggle-switch input:checked+label:before {
-  transform: translateX(26px);
-}
 
 .save-btn {
   background-color: #4CAF50;
