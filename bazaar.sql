@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 21, 2025 at 05:10 PM
+-- Generation Time: Jun 22, 2025 at 04:00 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -177,6 +177,13 @@ CREATE TABLE `vendors` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Dumping data for table `vendors`
+--
+
+INSERT INTO `vendors` (`vendor_id`, `id`, `shop_name`, `description`, `logo_url`, `created_at`) VALUES
+(7, 7, 'Local Mall', 'Step into Local Mall, your local haven for handcrafted treasures! We\'re passionate about bringing you unique, one-of-a-kind items, each lovingly created by skilled artisans. Discover a curated collection of handmades item that reflect the heart and soul of our community. Whether you\'re looking for a special gift or a unique addition to your home, you\'ll find something truly special here. Come explore the artistry and craftsmanship that makes our shop a gem!', '../backend/src/shop/localmalllogo.png', '2025-06-22 00:22:17');
+
+--
 -- Indexes for dumped tables
 --
 
@@ -303,7 +310,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `vendors`
 --
 ALTER TABLE `vendors`
-  MODIFY `vendor_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `vendor_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- Constraints for dumped tables

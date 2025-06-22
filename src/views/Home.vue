@@ -38,10 +38,10 @@
           <label>Price Range:</label>
           <select v-model="priceRange" @change="handleSearch">
             <option value="">Any Price</option>
-            <option value="0-50">$0 - $50</option>
-            <option value="51-100">$51 - $100</option>
-            <option value="101-200">$101 - $200</option>
-            <option value="201+">$201+</option>
+            <option value="0-50">RM0 - RM50</option>
+            <option value="51-100">RM51 - RM100</option>
+            <option value="101-200">RM101 - RM200</option>
+            <option value="201+">RM201+</option>
           </select>
         </div>
 
@@ -76,8 +76,8 @@
         <img :src="product.image" :alt="product.name" class="product-image">
         <div class="product-info">
           <h3 class="product-name">{{ product.name }}</h3>
-          <p class="seller-name">{{ product.sellerName }}</p>
-          <p class="product-price">${{ product.price }}</p>
+          <p class="seller-name">{{ product.shopName }}</p>
+          <p class="product-price">RM {{ product.price }}</p>
         </div>
       </div>
     </div>

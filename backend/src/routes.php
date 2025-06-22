@@ -389,9 +389,9 @@ return function (App $app) {
                     p.description,
                     p.price,
                     p.image_url AS image,
-                    u.fullname AS sellerName
+                    v.shop_name AS shopName
                 FROM products p
-                JOIN users u ON p.vendor_id = u.id";
+                JOIN vendors v ON v.id = p.vendor_id";
 
         $conditions = [];
         $bindings = [];
