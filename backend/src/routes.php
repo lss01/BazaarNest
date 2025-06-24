@@ -144,7 +144,7 @@ return function (App $app) {
         }
     });
 
-
+    // Fetch Profile route
     $app->get('/api/profile/{username}', function (Request $request, Response $response, array $args) {
         require __DIR__ . '/../db.php';
 
@@ -178,6 +178,7 @@ return function (App $app) {
         }
     });
 
+    // Update Profile route
     $app->post('/api/profile/update', function (Request $request, Response $response) {
         require __DIR__ . '/../db.php';
         $params = json_decode($request->getBody()->getContents(), true);
@@ -214,6 +215,7 @@ return function (App $app) {
         }
     });
 
+    // Update for Upload Profile Picture route
     $app->post('/api/upload-avatar', function ($request, $response) {
         $uploadDir = __DIR__ . '/../src/uploads/avatars';
         $uploadedFiles = $request->getUploadedFiles();
@@ -271,6 +273,7 @@ return function (App $app) {
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     });
 
+    // Filter Product route
     $app->get('/api/products/{category}/{priceRange}', function ($request, $response, $args) {
         require __DIR__ . '/../db.php';
         $category = $args['category'];
@@ -338,6 +341,8 @@ return function (App $app) {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
         }
     });
+
+    // Display Product route
     $app->get('/api/product-detail/{id}', function ($request, $response, $args) {
         require __DIR__ . '/../db.php';
         $id = $args['id'];
@@ -382,6 +387,8 @@ return function (App $app) {
                 ->write(json_encode(['status' => 'error', 'message' => 'Product not found']));
         }
     });
+
+    // Add to Cart route
     $app->get('/api/add-cart/{id}/{productId}/{quantity}', function ($request, $response, $args) {
         require __DIR__ . '/../db.php';
         $id = $args['id'];
@@ -399,6 +406,8 @@ return function (App $app) {
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
     });
+
+    // Get Cart route
     $app->get('/api/cart/{id}', function ($request, $response, $args) {
         require __DIR__ . '/../db.php';
         $id = $args['id'];
@@ -431,6 +440,8 @@ return function (App $app) {
                 ->write(json_encode(['status' => 'error', 'message' => 'Product not found']));
         }
     });
+
+    // Cart Update routes
     $app->get('/api/cart-update/{id}/{productId}/{quantity}', function ($request, $response, $args) {
         require __DIR__ . '/../db.php';
         $id = $args['id'];
@@ -449,6 +460,8 @@ return function (App $app) {
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
     });
+
+    // Cart Remove routes
     $app->get('/api/cart-remove/{id}/{productId}', function ($request, $response, $args) {
         require __DIR__ . '/../db.php';
         $id = $args['id'];
@@ -465,6 +478,8 @@ return function (App $app) {
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
     });
+
+    // Payment routes
     $app->get('/api/cart-checkout/{id}', function ($request, $response, $args) {
         require __DIR__ . '/../db.php';
         $id = $args['id'];
@@ -507,5 +522,39 @@ return function (App $app) {
             'message' => 'successfully removed from cart',
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    });
+
+    //Order History route
+    $app->get('/api/order-history/{id}', function ($request, $response, $args) {
+        require __DIR__ . '/../db.php';
+        $id = $args['id'];
+        $sql = "SELECT
+                  o.order_id AS id,
+                  oi.status AS status,
+                  p.name AS productName,
+                  p.image_url AS productImage,
+                  oi.quantity AS quantity,
+                  oi.price AS total ,
+                  o.created_at AS date
+                FROM orders o
+                JOIN order_items oi ON oi.order_id = o.order_id
+                JOIN products p ON p.product_id = oi.product_id
+                WHERE o.id = ?";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$id]);
+        $orders = $stmt->fetchAll();
+
+        if ($orders) {
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'data' => $orders
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        } else {
+            return $response->withHeader('Content-Type', 'application/json')
+                ->withStatus(404)
+                ->write(json_encode(['status' => 'error', 'message' => 'No orders found']));
+        }
     });
 };

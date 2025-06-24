@@ -27,7 +27,7 @@
             </div>
           </div>
           <div class="item-price">
-            <p class="price">${{ (item.price * item.quantity).toFixed(2) }}</p>
+            <p class="price">RM {{ (item.price * item.quantity).toFixed(2) }}</p>
             <button class="remove-item" @click="removeItem(item)">
               <i class="fas fa-trash"></i>
             </button>
@@ -40,15 +40,15 @@
         <h2>Order Summary</h2>
         <div class="summary-item">
           <span>Subtotal</span>
-          <span>${{ cartStore.subtotal.toFixed(2) }}</span>
+          <span>RM {{ cartStore.subtotal.toFixed(2) }}</span>
         </div>
         <div class="summary-item">
           <span>Shipping</span>
-          <span>${{ cartStore.shipping.toFixed(2) }}</span>
+          <span>RM {{ cartStore.shipping.toFixed(2) }}</span>
         </div>
         <div class="summary-item total">
           <span>Total</span>
-          <span>${{ cartStore.total.toFixed(2) }}</span>
+          <span>RM {{ cartStore.total.toFixed(2) }}</span>
         </div>
         <div class="cart-actions">
           <button class="continue-shopping" @click="goToHome">

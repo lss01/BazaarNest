@@ -46,7 +46,7 @@
               <div class="product-info">
                 <h4>{{ order.productName }}</h4>
                 <p>Quantity: {{ order.quantity }}</p>
-                <p>Total: ${{ order.total }}</p>
+                <p>Total: RM {{ order.total }}</p>
               </div>
             </div>
             <div class="order-date">{{ formatDate(order.date) }}</div>
@@ -54,22 +54,6 @@
         </div>
       </div>
 
-      <!-- Favorites Section -->
-      <div v-if="activeSection === 'favorites'" class="section">
-        <h2>Favorite Products</h2>
-        <div class="favorites-grid">
-          <div v-for="product in favorites" :key="product.id" class="favorite-card">
-            <img :src="product.image" :alt="product.name" class="product-image" />
-            <div class="product-info">
-              <h4>{{ product.name }}</h4>
-              <p class="price">${{ product.price }}</p>
-              <button class="remove-btn" @click="removeFavorite(product.id)">
-                Remove from Favorites
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Profile Section -->
       <div v-if="activeSection === 'profile'" class="section">
@@ -122,7 +106,6 @@
       defaultAvatar: 'src/assets/picture/profile.jpg',
       menuItems: [
         { id: 'orders', name: 'Orders', icon: 'fas fa-shopping-bag' },
-        { id: 'favorites', name: 'Favorites', icon: 'fas fa-heart' },
         { id: 'profile', name: 'Profile', icon: 'fas fa-user' }
       ],
       orders: [
@@ -137,15 +120,7 @@
         },
         // Add more mock orders as needed
       ],
-      favorites: [
-        {
-          id: 1,
-          name: 'Organic Cotton T-shirt',
-          price: 29.99,
-          image: 'https://via.placeholder.com/100'
-        },
-        // Add more mock favorites as needed
-      ],
+
       profile: {
         username: '',
         fullName: '',
@@ -269,11 +244,31 @@
         console.error('Error updating profile:', error);
         alert('There was a problem saving your profile.');
       }
+    },
+
+    async fetchOrders() {
+      try {
+        const userId = localStorage.getItem('userId');
+        if (!userId) throw new Error('No user ID found');
+
+        const response = await fetch(`/api/order-history/${encodeURIComponent(userId)}`);
+        if (!response.ok) throw new Error('Failed to fetch orders');
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          this.orders = data.data;
+        } else {
+          throw new Error(data.message || 'Orders not found');
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      }
     }
   },
   mounted() {
     this.fetchProfile();
-
+    this.fetchOrders();
     localStorage.getItem('avatar') && (this.userAvatar = "../backend/src/uploads/avatars/" + localStorage.getItem('avatar'))
   },
 
@@ -370,9 +365,17 @@
   font-size: 0.9em;
 }
 
-.order-status.delivered {
-  background-color: #e8f5e9;
-  color: #2e7d32;
+.order-status.pending {
+  background-color: #ece800;
+  color: #000000;
+}
+.order-status.shipped {
+  background-color: blue;
+  color: #ffffff;
+}
+.order-status.completed {
+  background-color: #00ff15;
+  color: #000000;
 }
 
 .order-details {
@@ -465,7 +468,7 @@
 
 .logout-section {
   margin-top: auto;
-  padding-top: 420px;
+  padding-top: 490px;
 }
 
 .logout-btn {
