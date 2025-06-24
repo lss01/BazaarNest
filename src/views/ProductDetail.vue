@@ -11,7 +11,7 @@
     <!-- Product Information -->
     <div class="product-info">
       <h1 class="product-title">{{ product.name }}</h1>
-      <p class="product-price">${{ product.price }}</p>
+      <p class="product-price">RM {{ product.price }}</p>
 
       <!-- Add to Cart Section -->
       <div class="add-to-cart-section">
@@ -43,6 +43,9 @@
           <p>{{ product.shopDescription }}</p>
         </div>
       </div>
+      <button class="continue-shopping" @click="goToHome">
+        <i class="fas fa-arrow-left"></i> Continue Shopping
+      </button>
 
     </div>
   </div>
@@ -94,6 +97,9 @@ export default {
     this.fetchProducts()
   },
   methods: {
+    goToHome() {
+      this.$router.push('/')
+    },
     async fetchProducts() {
       this.loading = true;
       const id = this.$route.params.id;
@@ -113,7 +119,7 @@ export default {
       } catch (error) {
         console.error('Error fetching products:', error);
       }
-  },
+    },
     increaseQuantity() {
       this.quantity++
     },
@@ -398,6 +404,25 @@ export default {
     position: static;
   }
 }
+.continue-shopping {
+  padding: 12px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
 
+.continue-shopping {
+  background: white;
+  border: 1px solid #4CAF50;
+  color: #4CAF50;
+}
+
+.continue-shopping:hover {
+  background: #f5f5f5;
+}
 
 </style>

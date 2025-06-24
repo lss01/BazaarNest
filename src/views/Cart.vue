@@ -72,53 +72,107 @@ export default {
   setup() {
     const cartStore = useCartStore()
 
-    onMounted(() => {
-      // Inject dummy data only if items are empty
-      if (cartStore.items.length === 0) {
-        // Directly set dummy items (local preview only)
-        cartStore.$patch({
-          items: [
-            {
-              id: 1,
-              name: 'Wireless Headphones',
-              sellerName: 'TechStore',
-              image: 'https://via.placeholder.com/100',
-              quantity: 2,
-              price: 49.99
-            },
-            {
-              id: 2,
-              name: 'Portable Speaker',
-              sellerName: 'AudioHub',
-              image: 'https://via.placeholder.com/100',
-              quantity: 1,
-              price: 29.99
-            }
-          ]
-        })
-      }
-    })
-
     return { cartStore }
+  },
+  mounted() {
+    this.fetchProducts();
   },
 
   methods: {
-    increaseQuantity(item) {
-      this.cartStore.updateQuantity(item.id, item.quantity + 1)
-    },
-    decreaseQuantity(item) {
-      if (item.quantity > 1) {
-        this.cartStore.updateQuantity(item.id, item.quantity - 1)
+    async fetchProducts() {
+      this.loading = true;
+      this.cartStore.items = [];
+      const id = localStorage.getItem('userId');
+      try {
+        const response = await fetch(`/api/cart/${encodeURIComponent(id)}`);
+        if (!response.ok) throw new Error('Failed to fetch products');
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          this.cartStore.items = data.data;
+        } else {
+          console.warn('No products found for the selected criteria');
+          throw new Error(data.message || 'Profile not found');
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+  },
+    async increaseQuantity(item) {
+      item.quantity++;
+      const userId = localStorage.getItem('userId');
+      try {
+        const response = await fetch(`/api/cart-update/${encodeURIComponent(userId)}/${encodeURIComponent(item.id)}/${encodeURIComponent(item.quantity)}`);
+
+        if (!response.ok) throw new Error('Failed to fetch products');
+
+        const data = await response.json();
+        if (data.status === 'success') {
+    
+        } else {
+          throw new Error(data.message || 'Profile not found');
+        }
+      } catch (error) {
+        console.error('Error adding product to cart:', error);
       }
     },
-    removeItem(item) {
-      this.cartStore.removeItem(item.id)
+    async decreaseQuantity(item) {
+      if (item.quantity > 1) {
+        item.quantity--
+        const userId = localStorage.getItem('userId');
+        try {
+          const response = await fetch(`/api/cart-update/${encodeURIComponent(userId)}/${encodeURIComponent(item.id)}/${encodeURIComponent(item.quantity)}`);
+
+          if (!response.ok) throw new Error('Failed to fetch products');
+
+          const data = await response.json();
+          if (data.status === 'success') {
+          } else {
+            throw new Error(data.message || 'Profile not found');
+          }
+        } catch (error) {
+          console.error('Error adding product to cart:', error);
+        }
+      }
+    },
+    async removeItem(item) {
+      const userId = localStorage.getItem('userId');
+      try {
+          const response = await fetch(`/api/cart-remove/${encodeURIComponent(userId)}/${encodeURIComponent(item.id)}`);
+
+          if (!response.ok) throw new Error('Failed to fetch products');
+
+          const data = await response.json();
+          if (data.status === 'success') {
+            window.location.reload();
+          } else {
+            throw new Error(data.message || 'Profile not found');
+          }
+        } catch (error) {
+          console.error('Error adding product to cart:', error);
+        }
     },
     goToHome() {
       this.$router.push('/')
     },
-    checkout() {
-      console.log('Proceeding to checkout...')
+    async checkout() {
+      const userId = localStorage.getItem('userId');
+      try {
+        alert('Checkout in progress...');
+          const response = await fetch(`/api/cart-checkout/${encodeURIComponent(userId)}`);
+
+          if (!response.ok) throw new Error('Failed to fetch products');
+
+          const data = await response.json();
+        if (data.status === 'success') {
+            alert('Checkout successful!');
+            window.location.reload();
+          } else {
+            throw new Error(data.message || 'Profile not found');
+          }
+        } catch (error) {
+          console.error('Error adding product to cart:', error);
+        }
     }
   }
 }

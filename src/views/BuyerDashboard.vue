@@ -18,14 +18,15 @@
           <i class="fas fa-home"></i>
           <span>Back to Home</span>
         </div>
+        <!-- Logout button at the bottom -->
+        <div class="logout-section">
+          <button class="logout-btn" @click="logout">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+          </button>
+        </div>
       </nav>
-      <!-- Logout button at the bottom -->
-      <div class="logout-section">
-        <button class="logout-btn" @click="logout">
-          <i class="fas fa-sign-out-alt"></i>
-          Logout
-        </button>
-      </div>
+      
     </div>
 
 
@@ -124,8 +125,27 @@
         { id: 'favorites', name: 'Favorites', icon: 'fas fa-heart' },
         { id: 'profile', name: 'Profile', icon: 'fas fa-user' }
       ],
-      orders: [/* mock orders */],
-      favorites: [/* mock favorites */],
+      orders: [
+        {
+          id: '12345',
+          status: 'Delivered',
+          productName: 'Handmade Ceramic Mug',
+          productImage: 'https://via.placeholder.com/100',
+          quantity: 2,
+          total: 49.98,
+          date: '2024-03-15'
+        },
+        // Add more mock orders as needed
+      ],
+      favorites: [
+        {
+          id: 1,
+          name: 'Organic Cotton T-shirt',
+          price: 29.99,
+          image: 'https://via.placeholder.com/100'
+        },
+        // Add more mock favorites as needed
+      ],
       profile: {
         username: '',
         fullName: '',
@@ -135,6 +155,7 @@
       }
     }
   },
+
   methods: {
     formatDate(date) {
       return new Date(date).toLocaleDateString('en-US', {
@@ -444,7 +465,7 @@
 
 .logout-section {
   margin-top: auto;
-  padding-top: 350px;
+  padding-top: 420px;
 }
 
 .logout-btn {

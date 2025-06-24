@@ -388,7 +388,7 @@ return function (App $app) {
         $productId = $args['productId'];
         $quantity = $args['quantity'];
         $sql = "INSERT INTO cart_items (user_id, product_id, quantity,added_at) VALUES (?, ?, ?, NOW())
-                ON DUPLICATE KEY UPDATE quantity = quantity + ? ";
+                ON DUPLICATE KEY UPDATE quantity = quantity + ?";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$id, $productId, $quantity, $quantity]);
@@ -396,6 +396,115 @@ return function (App $app) {
         $response->getBody()->write(json_encode([
             'status' => 'success',
             'message' => 'successfully added to cart',
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    });
+    $app->get('/api/cart/{id}', function ($request, $response, $args) {
+        require __DIR__ . '/../db.php';
+        $id = $args['id'];
+        $sql = "SELECT
+                  c.product_id AS id,
+                  p.name AS name,
+                  v.shop_name AS shopName,
+                  p.image_url AS image,
+                  c.quantity AS quantity,
+                  p.price AS price
+                FROM cart_items c
+                JOIN products p ON p.product_id = c.product_id
+                JOIN vendors v ON v.vendor_id = p.vendor_id
+                WHERE c.user_id = :id";
+
+        $bindings = [':id' => $id];
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($bindings);
+        $products = $stmt->fetchAll();
+
+        if ($products) {
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'data' => $products
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        } else {
+            return $response->withHeader('Content-Type', 'application/json')
+                ->withStatus(404)
+                ->write(json_encode(['status' => 'error', 'message' => 'Product not found']));
+        }
+    });
+    $app->get('/api/cart-update/{id}/{productId}/{quantity}', function ($request, $response, $args) {
+        require __DIR__ . '/../db.php';
+        $id = $args['id'];
+        $productId = $args['productId'];
+        $quantity = $args['quantity'];
+        $sql = "UPDATE cart_items
+                SET quantity = ?
+                WHERE user_id = ? AND product_id = ?";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$quantity, $id, $productId]);
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'message' => 'successfully updated',
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    });
+    $app->get('/api/cart-remove/{id}/{productId}', function ($request, $response, $args) {
+        require __DIR__ . '/../db.php';
+        $id = $args['id'];
+        $productId = $args['productId'];
+        $sql = "DELETE FROM cart_items
+                WHERE user_id = ? AND product_id = ?";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$id, $productId]);
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'message' => 'successfully removed from cart',
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    });
+    $app->get('/api/cart-checkout/{id}', function ($request, $response, $args) {
+        require __DIR__ . '/../db.php';
+        $id = $args['id'];
+        $sql = "SELECT
+                  c.product_id AS product_id,
+                  p.name AS name,
+                  c.quantity AS quantity,
+                  p.price AS price
+                FROM cart_items c
+                JOIN products p ON p.product_id = c.product_id
+                WHERE c.user_id =  ?";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$id]);
+        $check = $stmt->fetchAll();
+        $totalPrice = 5.99;
+        $insertOrder = $pdo->prepare("INSERT INTO orders (id, total_price, payment_method,created_at) VALUES (?, ?, ?, NOW())");
+        $insertOrder->execute([$id, 0, 'Online']);
+        $orderId = $pdo->lastInsertId();
+
+        foreach ($check as $item) {
+            $productId = $item['product_id'];
+            $quantity = $item['quantity'];
+            $price = $item['price'];
+            $totalPrice += $price * $quantity;
+
+            $insertOrder = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity,price, status) VALUES (?, ?, ?, ?, ?)");
+            $insertOrder->execute([$orderId, $productId, $quantity, $price * $quantity, 'pending']);
+            // Remove from cart
+            $deleteCart = $pdo->prepare("DELETE FROM cart_items WHERE user_id = ? AND product_id = ?");
+            $deleteCart->execute([$id, $productId]);
+        }
+        // update order total price
+        $updateOrder = $pdo->prepare("UPDATE orders SET total_price = ? WHERE order_id = ?");
+        $updateOrder->execute([$totalPrice, $orderId]);
+
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'message' => 'successfully removed from cart',
         ]));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
     });

@@ -10,7 +10,7 @@
         <img :src="userAvatar" alt="User Avatar" />
         <div class="user-menu" v-if="showUserMenu">
           <div class="menu-item" @click="goToProfile">Profile</div>
-          <div class="menu-item" @click="goToOrders">Orders</div>
+          <!-- <div class="menu-item" @click="goToOrders">Orders</div> -->
           <div class="menu-item" @click="logout">Logout</div>
         </div>
       </div>
