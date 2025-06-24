@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { cartApi } from '../services/api'
 
+/**
+ * Cart store for managing shopping cart state
+ * Handles cart operations like adding, removing, and updating items
+ */
 export const useCartStore = defineStore('cart', {
   state: () => ({
     items: [],
@@ -10,19 +14,42 @@ export const useCartStore = defineStore('cart', {
   }),
 
   getters: {
-    itemCount: (state) => state.items.reduce((total, item) => total + item.quantity, 0),
-    subtotal: (state) => state.items.reduce((total, item) => total + (item.price * item.quantity), 0),
-    total: (state) => state.subtotal + state.shipping
+    /**
+     * Calculate the total number of items in the cart
+     * @returns {number} Total number of items
+     */
+    itemCount: (state) => {
+      return state.items.reduce((total, item) => total + item.quantity, 0)
+    },
+
+    /**
+     * Calculate the subtotal of all items in the cart
+     * @returns {number} The subtotal amount
+     */
+    subtotal: (state) => {
+      return state.items.reduce((total, item) => {
+        return total + (item.price * item.quantity)
+      }, 0)
+    },
+
+    /**
+     * Calculate the total including shipping
+     * @returns {number} The total amount
+     */
+    total: (state) => {
+      return state.subtotal + state.shipping
+    }
   },
 
   actions: {
+    /**
+     * Fetch cart items from the server
+     */
     async fetchCart() {
       this.loading = true
       this.error = null
       try {
-        const username = localStorage.getItem('username')
-        if (!username) throw new Error('User not logged in')
-        const response = await cartApi.getCart(username)
+        const response = await cartApi.getCart()
         this.items = response.data
       } catch (error) {
         this.error = error.message
@@ -32,12 +59,15 @@ export const useCartStore = defineStore('cart', {
       }
     },
 
+    /**
+     * Add an item to the cart
+     * @param {Object} product - The product to add
+     */
     async addItem(product) {
       this.loading = true
       this.error = null
       try {
-        const username = localStorage.getItem('username')
-        const response = await cartApi.addToCart(username, product)
+        const response = await cartApi.addToCart(product)
         this.items = response.data
       } catch (error) {
         this.error = error.message
@@ -48,6 +78,10 @@ export const useCartStore = defineStore('cart', {
       }
     },
 
+    /**
+     * Remove an item from the cart
+     * @param {number} productId - The ID of the product to remove
+     */
     async removeItem(productId) {
       this.loading = true
       this.error = null
@@ -63,6 +97,11 @@ export const useCartStore = defineStore('cart', {
       }
     },
 
+    /**
+     * Update the quantity of an item
+     * @param {number} productId - The ID of the product to update
+     * @param {number} quantity - The new quantity
+     */
     async updateQuantity(productId, quantity) {
       this.loading = true
       this.error = null
@@ -78,12 +117,14 @@ export const useCartStore = defineStore('cart', {
       }
     },
 
+    /**
+     * Clear all items from the cart
+     */
     async clearCart() {
       this.loading = true
       this.error = null
       try {
-        const username = localStorage.getItem('username')
-        await cartApi.clearCart(username)
+        await cartApi.clearCart()
         this.items = []
       } catch (error) {
         this.error = error.message
@@ -105,4 +146,4 @@ export const useCartStore = defineStore('cart', {
       }
     ]
   }
-})
+}) 

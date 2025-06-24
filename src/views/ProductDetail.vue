@@ -3,14 +3,9 @@
     <!-- Product Image Carousel -->
     <div class="product-images">
       <div class="main-image">
-        <img :src="currentImage" :alt="product.name" />
+        <img :src="product.image_url" :alt="product.name" />
       </div>
-      <div class="thumbnail-list">
-        <div v-for="(image, index) in product.images" :key="index" class="thumbnail"
-          :class="{ active: currentImageIndex === index }" @click="currentImageIndex = index">
-          <img :src="image" :alt="`${product.name} - Image ${index + 1}`" />
-        </div>
-      </div>
+
     </div>
 
     <!-- Product Information -->
@@ -22,11 +17,11 @@
       <div class="add-to-cart-section">
         <div class="quantity-control">
           <button @click="decreaseQuantity" :disabled="quantity <= 1">
-            <i class="fas fa-minus"></i>
+            <i class="fa fa-minus"></i>
           </button>
           <span class="quantity">{{ quantity }}</span>
           <button @click="increaseQuantity">
-            <i class="fas fa-plus"></i>
+            <i class="fa fa-plus"></i>
           </button>
         </div>
         <button class="add-to-cart-btn" @click="addToCart">
@@ -42,50 +37,13 @@
 
       <!-- Seller Card -->
       <div class="seller-card" @click="navigateToStore" style="cursor: pointer;">
-        <img :src="product.seller.avatar" :alt="product.seller.name" class="seller-avatar"
-             @error="product.seller.avatar = defaultAvatar" />
+        <img :src="product.sellerAvatar" :alt="product.shopName" class="seller-avatar" />
         <div class="seller-info">
-          <h3>{{ product.seller.name }}</h3>
-          <p>{{ product.seller.description }}</p>
-          <div class="seller-stats">
-            <span>Rating: {{ product.seller.rating }}/5</span>
-            <span>Sales: {{ product.seller.totalSales }}</span>
-          </div>
+          <h3>{{ product.shopName }}</h3>
+          <p>{{ product.shopDescription }}</p>
         </div>
       </div>
 
-      <!-- Customer Reviews -->
-      <div class="reviews-section">
-        <h2>Customer Reviews</h2>
-        <div class="review-list">
-          <div v-for="review in product.reviews" :key="review.id" class="review-card">
-            <div class="review-header">
-              <img :src="review.userAvatar" :alt="review.userName" class="reviewer-avatar"
-                   @error="review.userAvatar = defaultAvatar" />
-              <div class="reviewer-info">
-                <h4>{{ review.userName }}</h4>
-                <div class="rating">
-                  <span v-for="n in 5" :key="n" class="star" :class="{ filled: n <= review.rating }">★</span>
-                </div>
-              </div>
-            </div>
-            <p class="review-content">{{ review.content }}</p>
-            <p class="review-date">{{ review.date }}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Similar Products -->
-      <div class="similar-products">
-        <h2>Similar Products</h2>
-        <div class="similar-products-grid">
-          <div v-for="item in similarProducts" :key="item.id" class="similar-product-card">
-            <img :src="item.image" :alt="item.name" />
-            <h3>{{ item.name }}</h3>
-            <p class="price">${{ item.price }}</p>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -103,66 +61,24 @@ export default {
   },
   data() {
     return {
-      currentImageIndex: 0,
-      quantity: 1,
-      defaultAvatar: 'src/assets/picture/profile.jpg',
       product: {
         id: 1,
-        name: 'Handmade Ceramic Mug',
-        price: 24.99,
-        description: 'Beautiful handcrafted ceramic mug made with love and attention to detail. Each piece is unique and perfect for your morning coffee or tea.',
-        images: [
-          'src/assets/picture/Handmade_Ceramic_Mug.jpg',
-          'src/assets/picture/Handmade_Ceramic_Mug.jpg',
-          'src/assets/picture/Handmade_Ceramic_Mug.jpg'
-        ],
-        seller: {
-          id: 101,
-          name: 'Artisan Pottery',
-          avatar: 'https://via.placeholder.com/100',
-          description: 'Creating unique ceramic pieces since 2010',
-          rating: 4.8,
-          totalSales: 1234
-        },
-        reviews: [
-          {
-            id: 1,
-            userName: 'John Doe',
-            userAvatar: 'src/assets/picture/profile.jpg',
-            rating: 5,
-            content: 'Absolutely love this mug! The craftsmanship is amazing.',
-            date: '2024-03-15'
-          },
-          {
-            id: 2,
-            userName: 'Jane Smith',
-            userAvatar: 'src/assets/picture/profile.jpg',
-            rating: 4,
-            content: 'Great quality and beautiful design.',
-            date: '2024-03-10'
-          }
-        ]
+      name: 'Handmade Ceramic Mug',
+      description: 'A beautiful handcrafted ceramic mug perfect for your morning coffee or tea.',
+      price: 24.99,
+      images: [
+        'src/assets/picture/Handmade_Ceramic_Mug.jpg',
+        'src/assets/picture/Handmade_Ceramic_Mug.jpg',
+        'src/assets/picture/Handmade_Ceramic_Mug.jpg'
+      ],
+      shopName: 'Artisan Pottery',
+      shopDescription: 'Creating unique ceramic pieces since 2010',
+      sellerAvatar: 'https://via.placeholder.com/100',
+      sellerId: 101
       },
-      similarProducts: [
-        {
-          id: 2,
-          name: 'Ceramic Tea Cup',
-          price: 19.99,
-          image: 'https://via.placeholder.com/200'
-        },
-        {
-          id: 3,
-          name: 'Stoneware Bowl',
-          price: 29.99,
-          image: 'https://via.placeholder.com/200'
-        },
-        {
-          id: 4,
-          name: 'Ceramic Plate Set',
-          price: 49.99,
-          image: 'https://via.placeholder.com/200'
-        }
-      ]
+      currentImageIndex: 0,
+      quantity: 1,
+      userAvatar: '',
     }
   },
   computed: {
@@ -170,25 +86,60 @@ export default {
       return this.product.images[this.currentImageIndex]
     }
   },
+  
+  mounted() {
+    this.currentImageIndex = 0;
+    this.quantity = 1;
+    localStorage.getItem('avatar') && (this.userAvatar = "../backend/src/uploads/avatars/" + localStorage.getItem('avatar'))
+    this.fetchProducts()
+  },
   methods: {
+    async fetchProducts() {
+      this.loading = true;
+      const id = this.$route.params.id;
+      try {
+        const response = await fetch(`/api/product-detail/${encodeURIComponent(id)}`);
+
+        if (!response.ok) throw new Error('Failed to fetch products');
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          this.product = data.data;
+          this.product.sellerAvatar = "../backend/src/uploads/avatars/" + this.product.sellerAvatar;
+        } else {
+          console.warn('No products found for the selected criteria');
+          throw new Error(data.message || 'Profile not found');
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+  },
     increaseQuantity() {
       this.quantity++
     },
     decreaseQuantity() {
       if (this.quantity > 1) this.quantity--
     },
-    addToCart() {
-      const cartItem = {
-        id: this.product.id,
-        name: this.product.name,
-        price: this.product.price,
-        image: this.product.images[0],
-        sellerName: this.product.seller.name,
-        quantity: this.quantity
+    async addToCart() {
+      const userId = localStorage.getItem('userId');
+      const productId = this.product.id;
+      const quantity = this.quantity;
+      try {
+        const response = await fetch(`/api/add-cart/${encodeURIComponent(userId)}/${encodeURIComponent(productId)}/${encodeURIComponent(quantity)}`);
+
+        if (!response.ok) throw new Error('Failed to fetch products');
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          alert('Product added to cart successfully!');
+          this.quantity = 1;
+        } else {
+          alert(data.message || 'Failed to add product to cart');
+          throw new Error(data.message || 'Profile not found');
+        }
+      } catch (error) {
+        console.error('Error adding product to cart:', error);
       }
-      this.cartStore.addItem(cartItem)
-      alert('Product added to cart!')
-      this.quantity = 1
     },
     navigateToStore() {
       if (this.product.seller.id) {
@@ -447,4 +398,6 @@ export default {
     position: static;
   }
 }
+
+
 </style>

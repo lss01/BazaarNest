@@ -62,6 +62,7 @@ const handleLogin = async () => {
       localStorage.setItem('token', result.token)
       localStorage.setItem('userRole', result.role)
       localStorage.setItem('username', username.value)
+      localStorage.setItem('userId', result.userId)
       localStorage.setItem('avatar', result.avatar || '')
       alert('Login successful!')
 

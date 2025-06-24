@@ -1,7 +1,7 @@
 <template>
   <div class="cart-container">
     <h1 class="cart-title">Shopping Cart</h1>
-
+    
     <div v-if="cartStore.items.length === 0" class="empty-cart">
       <i class="fas fa-shopping-cart"></i>
       <p>Your cart is empty</p>
@@ -65,48 +65,60 @@
 
 <script>
 import { useCartStore } from '../stores/cart'
+import { onMounted } from 'vue'
 
-/**
- * Shopping Cart component
- * Displays cart items and handles cart operations
- */
 export default {
   name: 'Cart',
   setup() {
     const cartStore = useCartStore()
+
+    onMounted(() => {
+      // Inject dummy data only if items are empty
+      if (cartStore.items.length === 0) {
+        // Directly set dummy items (local preview only)
+        cartStore.$patch({
+          items: [
+            {
+              id: 1,
+              name: 'Wireless Headphones',
+              sellerName: 'TechStore',
+              image: 'https://via.placeholder.com/100',
+              quantity: 2,
+              price: 49.99
+            },
+            {
+              id: 2,
+              name: 'Portable Speaker',
+              sellerName: 'AudioHub',
+              image: 'https://via.placeholder.com/100',
+              quantity: 1,
+              price: 29.99
+            }
+          ]
+        })
+      }
+    })
+
     return { cartStore }
   },
-  mounted() {
-    const username = localStorage.getItem('username')
-    if (username) {
-      this.cartStore.fetchCart(username)
-    }
-  },
+
   methods: {
     increaseQuantity(item) {
-      const username = localStorage.getItem('username')
-      if (username) {
-        this.cartStore.updateQuantity(item.id, item.quantity + 1, username)
-      }
+      this.cartStore.updateQuantity(item.id, item.quantity + 1)
     },
     decreaseQuantity(item) {
-      const username = localStorage.getItem('username')
-      if (item.quantity > 1 && username) {
-        this.cartStore.updateQuantity(item.id, item.quantity - 1, username)
+      if (item.quantity > 1) {
+        this.cartStore.updateQuantity(item.id, item.quantity - 1)
       }
     },
     removeItem(item) {
-      const username = localStorage.getItem('username')
-      if (username) {
-        this.cartStore.removeItem(item.id, username)
-      }
+      this.cartStore.removeItem(item.id)
     },
     goToHome() {
       this.$router.push('/')
     },
     checkout() {
       console.log('Proceeding to checkout...')
-      // Extend this method to handle actual checkout logic
     }
   }
 }
@@ -308,4 +320,4 @@ export default {
     align-items: center;
   }
 }
-</style> 
+</style>

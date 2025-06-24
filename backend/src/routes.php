@@ -122,7 +122,8 @@ return function (App $app) {
                     'status' => 'success',
                     'message' => 'Login successful',
                     'role' => $user['role'],
-                    'avatar' => $user['avatar'] ?? null
+                    'avatar' => $user['avatar'] ?? null,
+                    'userId' => $user['id'],
                     //can add 'token' here if using JWT later
                 ]));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
@@ -270,111 +271,6 @@ return function (App $app) {
         return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
     });
 
-    $app->post('/api/orders', function (Request $request, Response $response) {
-        require __DIR__ . '/../db.php';
-
-        $data = json_decode($request->getBody()->getContents(), true);
-        $userId = $data['user_id'] ?? null;
-        $totalPrice = $data['total_price'] ?? 0;
-        $items = $data['items'] ?? [];
-
-        if (!$userId || empty($items)) {
-            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Invalid input']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-        }
-
-        try {
-            $pdo->beginTransaction();
-
-            $stmt = $pdo->prepare("INSERT INTO orders (id, total_price) VALUES (?, ?)");
-            $stmt->execute([$userId, $totalPrice]);
-            $orderId = $pdo->lastInsertId();
-
-            $itemStmt = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
-
-            foreach ($items as $item) {
-                $itemStmt->execute([$orderId, $item['product_id'], $item['quantity'], $item['price']]);
-            }
-
-            $pdo->commit();
-
-            $response->getBody()->write(json_encode(['status' => 'success', 'order_id' => $orderId]));
-            return $response->withHeader('Content-Type', 'application/json');
-        } catch (PDOException $e) {
-            $pdo->rollBack();
-            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Order creation failed']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
-        }
-    });
-    $app->get('/api/orders/{user_id}', function (Request $request, Response $response, array $args) {
-        require __DIR__ . '/../db.php';
-        $userId = $args['user_id'];
-
-        try {
-            $stmt = $pdo->prepare("SELECT * FROM orders WHERE id = ?");
-            $stmt->execute([$userId]);
-            $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            $response->getBody()->write(json_encode(['status' => 'success', 'orders' => $orders]));
-            return $response->withHeader('Content-Type', 'application/json');
-        } catch (PDOException $e) {
-            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Failed to fetch orders']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
-        }
-    });
-    $app->get('/api/order/{order_id}', function (Request $request, Response $response, array $args) {
-        require __DIR__ . '/../db.php';
-        $orderId = $args['order_id'];
-
-        try {
-            $stmt = $pdo->prepare("SELECT * FROM orders WHERE order_id = ?");
-            $stmt->execute([$orderId]);
-            $order = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$order) {
-                $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Order not found']));
-                return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
-            }
-
-            $itemsStmt = $pdo->prepare("SELECT * FROM order_items WHERE order_id = ?");
-            $itemsStmt->execute([$orderId]);
-            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
-
-            $response->getBody()->write(json_encode([
-                'status' => 'success',
-                'order' => $order,
-                'items' => $items
-            ]));
-            return $response->withHeader('Content-Type', 'application/json');
-        } catch (PDOException $e) {
-            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Failed to fetch order']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
-        }
-    });
-    $app->put('/api/order/{order_id}/status', function (Request $request, Response $response, array $args) {
-        require __DIR__ . '/../db.php';
-        $orderId = $args['order_id'];
-        $data = json_decode($request->getBody()->getContents(), true);
-        $status = $data['status'] ?? '';
-
-        $validStatuses = ['pending', 'shipped', 'completed'];
-        if (!in_array($status, $validStatuses)) {
-            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Invalid status']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
-        }
-
-        try {
-            $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
-            $stmt->execute([$status, $orderId]);
-
-            $response->getBody()->write(json_encode(['status' => 'success', 'message' => 'Status updated']));
-            return $response->withHeader('Content-Type', 'application/json');
-        } catch (PDOException $e) {
-            $response->getBody()->write(json_encode(['status' => 'error', 'message' => 'Failed to update status']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
-        }
-    });
-
     $app->get('/api/products/{category}/{priceRange}', function ($request, $response, $args) {
         require __DIR__ . '/../db.php';
         $category = $args['category'];
@@ -441,5 +337,66 @@ return function (App $app) {
             ]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
         }
+    });
+    $app->get('/api/product-detail/{id}', function ($request, $response, $args) {
+        require __DIR__ . '/../db.php';
+        $id = $args['id'];
+        $sql = "SELECT
+                  p.product_id AS id,
+                  p.name,
+                  p.description,
+                  p.price,
+                  p.image_url AS image_url,
+                  v.shop_name AS shopName,
+                  v.description AS shopDescription,
+                  u.avatar AS sellerAvatar,
+                  u.id AS sellerId
+                FROM products p
+                JOIN vendors v ON v.id = p.vendor_id
+                JOIN users u ON u.id = v.id
+                WHERE p.product_id = :id";
+
+        $bindings = [':id' => $id];
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($bindings);
+        $products = $stmt->fetch();
+
+        if ($products) {
+            $product['images'] = [$products['image_url']];
+            $product['seller'] = [
+                'id' => $products['sellerId'],
+                'name' => $products['shopName'],
+                'avatar' => $products['sellerAvatar'],
+                'description' => $products['shopDescription'],
+            ];
+
+            unset($product['image_url'], $product['shopName'], $product['shopDescription'], $product['sellerAvatar'], $product['sellerId']);
+            $response->getBody()->write(json_encode([
+                'status' => 'success',
+                'data' => $products
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+        } else {
+            return $response->withHeader('Content-Type', 'application/json')
+                ->withStatus(404)
+                ->write(json_encode(['status' => 'error', 'message' => 'Product not found']));
+        }
+    });
+    $app->get('/api/add-cart/{id}/{productId}/{quantity}', function ($request, $response, $args) {
+        require __DIR__ . '/../db.php';
+        $id = $args['id'];
+        $productId = $args['productId'];
+        $quantity = $args['quantity'];
+        $sql = "INSERT INTO cart_items (user_id, product_id, quantity,added_at) VALUES (?, ?, ?, NOW())
+                ON DUPLICATE KEY UPDATE quantity = quantity + ? ";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$id, $productId, $quantity, $quantity]);
+
+        $response->getBody()->write(json_encode([
+            'status' => 'success',
+            'message' => 'successfully added to cart',
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
     });
 };
