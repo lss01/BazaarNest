@@ -27,3 +27,9 @@ npm run dev
 ```sh
 npm run build
 ```
+
+### Connecting with Localhost php for backend
+
+```sh
+php -S localhost:8080
+```
