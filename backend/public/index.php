@@ -20,4 +20,5 @@ $app->add(function ($request, $handler) {
 // Define routes
 (require __DIR__ . '/../src/routes.php')($app);
 
+
 $app->run();
