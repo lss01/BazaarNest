@@ -66,18 +66,18 @@ export default {
     return {
       product: {
         id: 1,
-      name: 'Handmade Ceramic Mug',
-      description: 'A beautiful handcrafted ceramic mug perfect for your morning coffee or tea.',
-      price: 24.99,
-      images: [
-        'src/assets/picture/Handmade_Ceramic_Mug.jpg',
-        'src/assets/picture/Handmade_Ceramic_Mug.jpg',
-        'src/assets/picture/Handmade_Ceramic_Mug.jpg'
-      ],
-      shopName: 'Artisan Pottery',
-      shopDescription: 'Creating unique ceramic pieces since 2010',
-      sellerAvatar: 'https://via.placeholder.com/100',
-      sellerId: 101
+        name: 'Handmade Ceramic Mug',
+        description: 'A beautiful handcrafted ceramic mug perfect for your morning coffee or tea.',
+        price: 24.99,
+        images: [
+          'src/assets/picture/Handmade_Ceramic_Mug.jpg',
+          'src/assets/picture/Handmade_Ceramic_Mug.jpg',
+          'src/assets/picture/Handmade_Ceramic_Mug.jpg'
+        ],
+        shopName: 'Artisan Pottery',
+        shopDescription: 'Creating unique ceramic pieces since 2010',
+        sellerAvatar: 'https://via.placeholder.com/100',
+        sellerId: 101
       },
       currentImageIndex: 0,
       quantity: 1,
@@ -89,7 +89,7 @@ export default {
       return this.product.images[this.currentImageIndex]
     }
   },
-  
+
   mounted() {
     this.currentImageIndex = 0;
     this.quantity = 1;
@@ -103,14 +103,17 @@ export default {
     async fetchProducts() {
       this.loading = true;
       const id = this.$route.params.id;
+      const url = `/api/product-detail/${encodeURIComponent(id)}`;
+      console.log(url)
       try {
-        const response = await fetch(`/api/product-detail/${encodeURIComponent(id)}`);
-
+        const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to fetch products');
 
         const data = await response.json();
         if (data.status === 'success') {
-          this.product = data.data;
+          this.product = data.product;
+          console.log(data.product)
+
           this.product.sellerAvatar = "../backend/src/uploads/avatars/" + this.product.sellerAvatar;
         } else {
           console.warn('No products found for the selected criteria');
@@ -128,10 +131,13 @@ export default {
     },
     async addToCart() {
       const userId = localStorage.getItem('userId');
-      const productId = this.product.id;
       const quantity = this.quantity;
+      const id = this.$route.params.id;
+      console.log('check id:' + id)
+      const url = `/api/add-cart/${encodeURIComponent(userId)}/${encodeURIComponent(id)}/${encodeURIComponent(quantity)}`
+      console.log(url)
       try {
-        const response = await fetch(`/api/add-cart/${encodeURIComponent(userId)}/${encodeURIComponent(productId)}/${encodeURIComponent(quantity)}`);
+        const response = await fetch(url);
 
         if (!response.ok) throw new Error('Failed to fetch products');
 
@@ -404,6 +410,7 @@ export default {
     position: static;
   }
 }
+
 .continue-shopping {
   padding: 12px 20px;
   border-radius: 4px;
@@ -424,5 +431,4 @@ export default {
 .continue-shopping:hover {
   background: #f5f5f5;
 }
-
 </style>

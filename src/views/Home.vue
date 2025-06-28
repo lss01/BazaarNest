@@ -71,8 +71,8 @@
       <div v-else-if="products.length === 0" class="no-results">
         No products found matching your criteria
       </div>
-      <div v-else class="product-card" v-for="product in products" :key="product.id"
-        @click="goToProductDetail(product.id)">
+      <div v-else class="product-card" v-for="product in products" :key="product.product_id"
+        @click="goToProductDetail(product.product_id)">
         <img :src="product.image" :alt="product.name" class="product-image">
         <div class="product-info">
           <h3 class="product-name">{{ product.name }}</h3>
@@ -134,7 +134,9 @@ export default {
         const category = this.selectedCategory || '0';
         const price = this.priceRange || '0';
         const search = this.searchQuery ? encodeURIComponent(this.searchQuery) : '';
-        const response = await fetch(`/api/products/${encodeURIComponent(category)}/${encodeURIComponent(price)}?search=${search}`);
+        const url = `/api/products/${encodeURIComponent(category)}/${encodeURIComponent(price)}?search=${search}`
+        console.log(url)
+        const response = await fetch(url);
 
         if (!response.ok) throw new Error('Failed to fetch products');
 
