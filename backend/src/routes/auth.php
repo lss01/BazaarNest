@@ -121,15 +121,14 @@ return function (App $app) {
         }
     });
 
-    // Fetch Profile route
-    $app->get('/api/profile/{username}', function (Request $request, Response $response, array $args) {
+    $app->get('/api/profile/{id}', function (Request $request, Response $response, array $args) {
         require __DIR__ . '/../../db.php';
 
-        $username = $args['username'];
+        $id = $args['id'];
 
         try {
-            $stmt = $pdo->prepare("SELECT username, fullname ,email, phone , address, avatar FROM users WHERE username = ?");
-            $stmt->execute([$username]);
+            $stmt = $pdo->prepare("SELECT id, username, fullname, email, phone, address, avatar FROM users WHERE id = ?");
+            $stmt->execute([$id]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
@@ -154,6 +153,7 @@ return function (App $app) {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     });
+
 
     // Update Profile route
     $app->post('/api/profile/update', function (Request $request, Response $response) {

@@ -1,7 +1,7 @@
 <template>
   <div class="cart-container">
     <h1 class="cart-title">Shopping Cart</h1>
-    
+
     <div v-if="cartStore.items.length === 0" class="empty-cart">
       <i class="fas fa-shopping-cart"></i>
       <p>Your cart is empty</p>
@@ -9,13 +9,12 @@
     </div>
 
     <div v-else class="cart-content">
-      <!-- Cart Items List -->
       <div class="cart-items">
         <div v-for="item in cartStore.items" :key="item.id" class="cart-item">
-          <img :src="item.image" :alt="item.name" class="item-image">
+          <img :src="item.image_url" :alt="item.product_name" class="item-image">
           <div class="item-details">
-            <h3 class="item-name">{{ item.name }}</h3>
-            <p class="item-seller">{{ item.sellerName }}</p>
+            <h3 class="item-name">{{ item.product_name }}</h3>
+            <p class="item-seller">Seller: #{{ item.user_id }}</p>
             <div class="quantity-control">
               <button @click="decreaseQuantity(item)" :disabled="item.quantity <= 1">
                 <i class="fas fa-minus"></i>
@@ -35,20 +34,19 @@
         </div>
       </div>
 
-      <!-- Order Summary -->
       <div class="order-summary">
         <h2>Order Summary</h2>
         <div class="summary-item">
           <span>Subtotal</span>
-          <span>RM {{ cartStore.subtotal.toFixed(2) }}</span>
+          <span>RM {{ subtotal.toFixed(2) }}</span>
         </div>
         <div class="summary-item">
           <span>Shipping</span>
-          <span>RM {{ cartStore.shipping.toFixed(2) }}</span>
+          <span>RM {{ shipping.toFixed(2) }}</span>
         </div>
         <div class="summary-item total">
           <span>Total</span>
-          <span>RM {{ cartStore.total.toFixed(2) }}</span>
+          <span>RM {{ total.toFixed(2) }}</span>
         </div>
         <div class="cart-actions">
           <button class="continue-shopping" @click="goToHome">
@@ -64,119 +62,88 @@
 </template>
 
 <script>
-import { useCartStore } from '../stores/cart'
-import { onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue';
+import { useCartStore } from '../stores/cart';
 
 export default {
   name: 'Cart',
   setup() {
-    const cartStore = useCartStore()
+    const cartStore = useCartStore();
 
-    return { cartStore }
-  },
-  mounted() {
-    this.fetchProducts();
-  },
-
-  methods: {
-    async fetchProducts() {
-      this.loading = true;
-      this.cartStore.items = [];
+    const fetchProducts = async () => {
       const id = localStorage.getItem('userId');
       try {
-        const response = await fetch(`/api/cart/${encodeURIComponent(id)}`);
-        if (!response.ok) throw new Error('Failed to fetch products');
-
+        const response = await fetch(`/api/cart/user/${encodeURIComponent(id)}`);
+        if (!response.ok) throw new Error('Failed to fetch cart');
         const data = await response.json();
         if (data.status === 'success') {
-          this.cartStore.items = data.data;
+          cartStore.items = data.data;
         } else {
-          console.warn('No products found for the selected criteria');
-          throw new Error(data.message || 'Profile not found');
+          cartStore.items = [];
         }
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error fetching cart:', error);
       }
-  },
-    async increaseQuantity(item) {
+    };
+
+    const increaseQuantity = async (item) => {
       item.quantity++;
       const userId = localStorage.getItem('userId');
-      try {
-        const response = await fetch(`/api/cart-update/${encodeURIComponent(userId)}/${encodeURIComponent(item.id)}/${encodeURIComponent(item.quantity)}`);
+      await fetch(`/api/cart/update/${userId}/${item.product_id}/${item.quantity}`);
+    };
 
-        if (!response.ok) throw new Error('Failed to fetch products');
-
-        const data = await response.json();
-        if (data.status === 'success') {
-    
-        } else {
-          throw new Error(data.message || 'Profile not found');
-        }
-      } catch (error) {
-        console.error('Error adding product to cart:', error);
-      }
-    },
-    async decreaseQuantity(item) {
+    const decreaseQuantity = async (item) => {
       if (item.quantity > 1) {
-        item.quantity--
+        item.quantity--;
         const userId = localStorage.getItem('userId');
-        try {
-          const response = await fetch(`/api/cart-update/${encodeURIComponent(userId)}/${encodeURIComponent(item.id)}/${encodeURIComponent(item.quantity)}`);
-
-          if (!response.ok) throw new Error('Failed to fetch products');
-
-          const data = await response.json();
-          if (data.status === 'success') {
-          } else {
-            throw new Error(data.message || 'Profile not found');
-          }
-        } catch (error) {
-          console.error('Error adding product to cart:', error);
-        }
+        await fetch(`/api/cart/update/${userId}/${item.product_id}/${item.quantity}`);
       }
-    },
-    async removeItem(item) {
+    };
+
+    const removeItem = async (item) => {
       const userId = localStorage.getItem('userId');
-      try {
-          const response = await fetch(`/api/cart-remove/${encodeURIComponent(userId)}/${encodeURIComponent(item.id)}`);
+      await fetch(`/api/cart/remove/${userId}/${item.product_id}`);
+      await fetchProducts();
+    };
 
-          if (!response.ok) throw new Error('Failed to fetch products');
-
-          const data = await response.json();
-          if (data.status === 'success') {
-            window.location.reload();
-          } else {
-            throw new Error(data.message || 'Profile not found');
-          }
-        } catch (error) {
-          console.error('Error adding product to cart:', error);
-        }
-    },
-    goToHome() {
-      this.$router.push('/')
-    },
-    async checkout() {
+    const checkout = async () => {
       const userId = localStorage.getItem('userId');
-      try {
-        alert('Checkout in progress...');
-          const response = await fetch(`/api/cart-checkout/${encodeURIComponent(userId)}`);
+      console.log(userId);
+      const url = `/api/cart/checkout/${userId}`
+      console.log(url);
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.status === 'success') {
+        alert('Checkout successful!');
+        await fetchProducts();
+      }
+    };
 
-          if (!response.ok) throw new Error('Failed to fetch products');
+    const goToHome = () => {
+      window.location.href = '/';
+    };
 
-          const data = await response.json();
-        if (data.status === 'success') {
-            alert('Checkout successful!');
-            window.location.reload();
-          } else {
-            throw new Error(data.message || 'Profile not found');
-          }
-        } catch (error) {
-          console.error('Error adding product to cart:', error);
-        }
-    }
+    const subtotal = computed(() => cartStore.items.reduce((sum, item) => sum + item.price * item.quantity, 0));
+    const shipping = computed(() => subtotal.value > 0 ? 10 : 0);
+    const total = computed(() => subtotal.value + shipping.value);
+
+    onMounted(fetchProducts);
+
+    return {
+      cartStore,
+      increaseQuantity,
+      decreaseQuantity,
+      removeItem,
+      checkout,
+      goToHome,
+      subtotal,
+      shipping,
+      total
+    };
   }
-}
+};
 </script>
+
 
 <style scoped>
 .cart-container {
@@ -212,7 +179,7 @@ export default {
 .cart-items {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .cart-item {
@@ -300,7 +267,7 @@ export default {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   height: fit-content;
 }
 
@@ -327,7 +294,8 @@ export default {
   margin-top: 20px;
 }
 
-.continue-shopping, .checkout {
+.continue-shopping,
+.checkout {
   padding: 12px 20px;
   border-radius: 4px;
   cursor: pointer;
@@ -362,11 +330,11 @@ export default {
   .cart-content {
     grid-template-columns: 1fr;
   }
-  
+
   .cart-item {
     grid-template-columns: 80px 1fr;
   }
-  
+
   .item-price {
     grid-column: 1 / -1;
     flex-direction: row;

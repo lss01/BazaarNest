@@ -73,7 +73,7 @@
       </div>
       <div v-else class="product-card" v-for="product in products" :key="product.product_id"
         @click="goToProductDetail(product.product_id)">
-        <img :src="product.image" :alt="product.name" class="product-image">
+        <img :src="product.image_url" :alt="product.name" class="product-image">
         <div class="product-info">
           <h3 class="product-name">{{ product.name }}</h3>
           <p class="seller-name">{{ product.shopName }}</p>
@@ -134,7 +134,7 @@ export default {
         const category = this.selectedCategory || '0';
         const price = this.priceRange || '0';
         const search = this.searchQuery ? encodeURIComponent(this.searchQuery) : '';
-        const url = `/api/products/${encodeURIComponent(category)}/${encodeURIComponent(price)}?search=${search}`
+        const url = `/api/products/list/${encodeURIComponent(category)}/${encodeURIComponent(price)}?search=${search}`
         console.log(url)
         const response = await fetch(url);
 
@@ -169,7 +169,7 @@ export default {
       try {
         const category = this.selectedCategory || '0';
         const price = this.priceRange || '0';
-        const response = await fetch(`/api/products/${encodeURIComponent(category)}/${encodeURIComponent(price)}`);
+        const response = await fetch(`/api/products/list/${encodeURIComponent(category)}/${encodeURIComponent(price)}`);
 
         if (!response.ok) throw new Error('Failed to fetch products');
 

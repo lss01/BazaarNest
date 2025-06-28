@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 24, 2025 at 11:18 PM
+-- Generation Time: Jun 21, 2025 at 05:10 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -34,13 +34,6 @@ CREATE TABLE `cart_items` (
   `quantity` int(11) NOT NULL DEFAULT 1,
   `added_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `cart_items`
---
-
-INSERT INTO `cart_items` (`cart_item_id`, `user_id`, `product_id`, `quantity`, `added_at`) VALUES
-(52, 1, 27, 2, '2025-06-25 05:14:58');
 
 -- --------------------------------------------------------
 
@@ -79,17 +72,9 @@ CREATE TABLE `orders` (
   `order_id` int(11) NOT NULL,
   `id` int(11) NOT NULL,
   `total_price` decimal(10,2) NOT NULL,
-  `payment_method` varchar(255) NOT NULL,
+  `status` enum('pending','shipped','completed') DEFAULT 'pending',
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `orders`
---
-
-INSERT INTO `orders` (`order_id`, `id`, `total_price`, `payment_method`, `created_at`) VALUES
-(20, 1, 157.37, 'Online', '2025-06-25 03:34:11'),
-(21, 1, 74.99, 'Online', '2025-06-25 05:13:47');
 
 -- --------------------------------------------------------
 
@@ -102,21 +87,23 @@ CREATE TABLE `order_items` (
   `order_id` int(11) NOT NULL,
   `product_id` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
-  `price` decimal(10,2) NOT NULL,
-  `status` enum('pending','shipped','completed') DEFAULT 'pending'
+  `price` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `order_items`
+-- Table structure for table `payments`
 --
 
-INSERT INTO `order_items` (`order_item_id`, `order_id`, `product_id`, `quantity`, `price`, `status`) VALUES
-(22, 20, 26, 1, 24.99, 'pending'),
-(23, 20, 27, 1, 29.99, 'shipped'),
-(24, 20, 30, 1, 49.90, 'completed'),
-(25, 20, 29, 1, 12.00, 'pending'),
-(26, 20, 28, 1, 34.50, 'pending'),
-(27, 21, 28, 2, 69.00, 'pending');
+CREATE TABLE `payments` (
+  `payment_id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `payment_method` varchar(50) DEFAULT NULL,
+  `status` enum('pending','paid','failed') DEFAULT 'pending',
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -172,7 +159,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `username`, `fullname`, `email`, `phone`, `address`, `password`, `role`, `avatar`, `created_at`) VALUES
 (1, 'lss', 'Ling Siew Siew', 'test@gmail.com', '0198856665', 'UTM', '$2y$10$miZWtjnqxl1Vb0Y0zz0C.OmMZ6JaW.f8MpiVa3sCloy/88X5/z.Wu', 'buyer', '6856c939c08c6_AHXwxdw.jpeg', '2025-06-17 18:56:10'),
-(7, 'humann', 'Ling Siew Siew', 'testseller@gmail.com', '0132256687', 'Damansara', '$2y$10$9XcaxBSpQIoVHOW4PfKUie.MCvqC.db3Ijgc773eGsn5BkFVXR1vW', 'seller', 'localmalllogo.png', '2025-06-21 13:07:16');
+(7, 'humann', 'Ling Siew Siew', 'testseller@gmail.com', '0132256687', 'Damansara', '$2y$10$9XcaxBSpQIoVHOW4PfKUie.MCvqC.db3Ijgc773eGsn5BkFVXR1vW', 'seller', NULL, '2025-06-21 13:07:16');
 
 -- --------------------------------------------------------
 
@@ -185,15 +172,9 @@ CREATE TABLE `vendors` (
   `id` int(11) NOT NULL,
   `shop_name` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
+  `logo_url` varchar(255) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `vendors`
---
-
-INSERT INTO `vendors` (`vendor_id`, `id`, `shop_name`, `description`, `created_at`) VALUES
-(7, 7, 'Local Mall', 'Step into Local Mall, your local haven for handcrafted treasures! We\'re passionate about bringing you unique, one-of-a-kind items, each lovingly created by skilled artisans. Discover a curated collection of handmades item that reflect the heart and soul of our community. Whether you\'re looking for a special gift or a unique addition to your home, you\'ll find something truly special here. Come explore the artistry and craftsmanship that makes our shop a gem!', '2025-06-22 00:22:17');
 
 --
 -- Indexes for dumped tables
@@ -204,7 +185,7 @@ INSERT INTO `vendors` (`vendor_id`, `id`, `shop_name`, `description`, `created_a
 --
 ALTER TABLE `cart_items`
   ADD PRIMARY KEY (`cart_item_id`),
-  ADD UNIQUE KEY `unique_user_product` (`user_id`,`product_id`),
+  ADD KEY `fk_cart_user` (`user_id`),
   ADD KEY `fk_cart_product` (`product_id`);
 
 --
@@ -239,6 +220,13 @@ ALTER TABLE `order_items`
   ADD KEY `fk_item_product` (`product_id`);
 
 --
+-- Indexes for table `payments`
+--
+ALTER TABLE `payments`
+  ADD PRIMARY KEY (`payment_id`),
+  ADD KEY `fk_payment_order` (`order_id`);
+
+--
 -- Indexes for table `products`
 --
 ALTER TABLE `products`
@@ -267,7 +255,7 @@ ALTER TABLE `vendors`
 -- AUTO_INCREMENT for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  MODIFY `cart_item_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `cart_item_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `favorites`
@@ -285,13 +273,19 @@ ALTER TABLE `messages`
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `order_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `order_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `order_item_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `order_item_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payments`
+--
+ALTER TABLE `payments`
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `products`
@@ -309,7 +303,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `vendors`
 --
 ALTER TABLE `vendors`
-  MODIFY `vendor_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `vendor_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
@@ -348,6 +342,12 @@ ALTER TABLE `orders`
 ALTER TABLE `order_items`
   ADD CONSTRAINT `fk_item_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_item_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `payments`
+--
+ALTER TABLE `payments`
+  ADD CONSTRAINT `fk_payment_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `products`

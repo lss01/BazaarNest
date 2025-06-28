@@ -37,9 +37,9 @@
 
       <!-- Seller Card -->
       <div class="seller-card" @click="navigateToStore" style="cursor: pointer;">
-        <img :src="product.sellerAvatar" :alt="product.shopName" class="seller-avatar" />
+        <img :src="product.avatar" :alt="product.username" class="seller-avatar" />
         <div class="seller-info">
-          <h3>{{ product.shopName }}</h3>
+          <h3>{{ product.username }}</h3>
           <p>{{ product.shopDescription }}</p>
         </div>
       </div>
@@ -103,7 +103,7 @@ export default {
     async fetchProducts() {
       this.loading = true;
       const id = this.$route.params.id;
-      const url = `/api/product-detail/${encodeURIComponent(id)}`;
+      const url = `/api/product/detail/${encodeURIComponent(id)}`;
       console.log(url)
       try {
         const response = await fetch(url);
@@ -134,7 +134,7 @@ export default {
       const quantity = this.quantity;
       const id = this.$route.params.id;
       console.log('check id:' + id)
-      const url = `/api/add-cart/${encodeURIComponent(userId)}/${encodeURIComponent(id)}/${encodeURIComponent(quantity)}`
+      const url = `/api/cart/add/${encodeURIComponent(userId)}/${encodeURIComponent(id)}/${encodeURIComponent(quantity)}`
       console.log(url)
       try {
         const response = await fetch(url);

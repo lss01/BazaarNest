@@ -7,22 +7,18 @@
         <h3>{{ userName }}</h3>
       </div>
       <nav class="nav-menu">
-        <div 
-          v-for="item in menuItems" 
-          :key="item.id"
-          :class="['nav-item', { active: activeSection === item.id }]"
-          @click="activeSection = item.id"
-        >
+        <div v-for="item in menuItems" :key="item.id" :class="['nav-item', { active: activeSection === item.id }]"
+          @click="activeSection = item.id">
           <i :class="item.icon"></i>
           <span>{{ item.name }}</span>
         </div>
         <!-- Logout button at the bottom -->
-      <div class="logout-section">
-        <button class="logout-btn" @click="logout">
-          <i class="fas fa-sign-out-alt"></i>
-          Logout
-        </button>
-      </div>
+        <div class="logout-section">
+          <button class="logout-btn" @click="logout">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+          </button>
+        </div>
 
       </nav>
     </div>
@@ -37,10 +33,10 @@
             <i class="fas fa-plus"></i> Add New Product
           </button>
         </div>
-        
+
         <div class="products-grid">
           <div v-for="product in products" :key="product.id" class="product-card">
-            <img :src="product.image" :alt="product.name" class="product-image" />
+            <img :src="product.image_url" :alt="product.name" class="product-image" />
             <div class="product-info">
               <h4>{{ product.name }}</h4>
               <p class="price">${{ product.price }}</p>
@@ -49,15 +45,18 @@
                 <button class="edit-btn" @click="editProduct(product)">
                   <i class="fas fa-edit"></i> Edit
                 </button>
-                <button class="delete-btn" @click="deleteProduct(product.id)">
+                <button class="delete-btn" @click="destroyProduct(product.product_id)">
                   <i class="fas fa-trash"></i> Delete
                 </button>
               </div>
             </div>
           </div>
+          <div v-if="products.length == 0">
+            No products found
+          </div>
         </div>
       </div>
-      
+
       <!-- Orders Tracking Section -->
       <div v-if="activeSection === 'orders'" class="section">
         <h2>Order Tracking</h2>
@@ -99,33 +98,18 @@
         <div class="customization-container">
           <div class="components-panel">
             <h3>Available Components</h3>
-            <div 
-              v-for="component in availableComponents" 
-              :key="component.id"
-              class="component-item"
-              draggable="true"
-              @dragstart="dragStart($event, component)"
-            >
+            <div v-for="component in availableComponents" :key="component.id" class="component-item" draggable="true"
+              @dragstart="dragStart($event, component)">
               <i :class="component.icon"></i>
               <span>{{ component.name }}</span>
             </div>
           </div>
-          
-          <div 
-            class="store-preview"
-            @dragover.prevent
-            @drop="dropComponent"
-          >
+
+          <div class="store-preview" @dragover.prevent @drop="dropComponent">
             <h3>Store Layout</h3>
-            <div 
-              v-for="(component, index) in storeLayout" 
-              :key="index"
-              class="layout-component"
-              draggable="true"
-              @dragstart="dragStart($event, component, index)"
-              @dragover.prevent
-              @drop="reorderComponent($event, index)"
-            >
+            <div v-for="(component, index) in storeLayout" :key="index" class="layout-component" draggable="true"
+              @dragstart="dragStart($event, component, index)" @dragover.prevent
+              @drop="reorderComponent($event, index)">
               <i :class="component.icon"></i>
               <span>{{ component.name }}</span>
               <button class="remove-component" @click="removeComponent(index)">
@@ -160,7 +144,7 @@
           </div>
           <div class="form-group">
             <label>Image URL</label>
-            <input type="url" v-model="productForm.image" required />
+            <input type="url" v-model="productForm.image_url" required />
           </div>
           <div class="modal-actions">
             <button type="button" class="cancel-btn" @click="showAddProductModal = false">Cancel</button>
@@ -184,21 +168,21 @@ export default {
     return {
       activeSection: 'products',
       userName: 'Jane Smith',
-      userAvatar: 'https://via.placeholder.com/100',
+      userAvatar: 'https://picsum.photos/200',
       menuItems: [
         { id: 'products', name: 'Products', icon: 'fas fa-box' },
         { id: 'orders', name: 'Orders', icon: 'fas fa-shopping-cart' },
         { id: 'customization', name: 'Store Customization', icon: 'fas fa-paint-brush' }
       ],
       products: [
-        {
-          id: 1,
-          name: 'Handmade Ceramic Mug',
-          price: 24.99,
-          stock: 50,
-          image: 'https://via.placeholder.com/100',
-          description: 'Beautiful handmade ceramic mug'
-        }
+        // {
+        //   id: 1,
+        //   name: 'Handmade Ceramic Mug',
+        //   price: 24.99,
+        //   stock: 50,
+        //   image: 'https://via.placeholder.com/100',
+        //   description: 'Beautiful handmade ceramic mug'
+        // }
       ],
       orders: [
         {
@@ -232,11 +216,79 @@ export default {
         price: '',
         stock: '',
         description: '',
-        image: ''
+        image_url: ''
       }
     }
   },
+  mounted() {
+    localStorage.getItem('avatar') && (this.userAvatar = "../backend/src/uploads/avatars/" + localStorage.getItem('avatar'))
+    this.fetchProducts();
+    this.fetchUserProfile();
+  },
   methods: {
+    async fetchProducts() {
+      this.loading = true;
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`/api/products/seller/${userId}`);
+
+        if (!response.ok) throw new Error('Failed to fetch products');
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          this.products = [];
+          console.log('Products fetched successfully:', data.products);
+          this.products = data.products || [];
+          if (this.products.length === 0) {
+            console.warn('No products found for the selected criteria');
+            this.loading = false;
+          } else {
+            this.loading = false;
+          }
+
+        } else {
+          this.products = [];
+          console.warn('No products found for the selected criteria');
+          throw new Error(data.message || 'Profile not found');
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    },
+
+    async storeProduct() {
+      this.loading = true;
+      try {
+        const userId = localStorage.getItem('userId');
+        console.log('vendor: ' + userId)
+        const payload = JSON.stringify({ ...this.productForm, vendor_id: userId })
+        console.log(payload)
+        const response = await fetch('/api/products/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        });
+
+        if (!response.ok) throw new Error('Failed to add product');
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          console.log('Product added successfully');
+          this.showAddProductModal = false;
+          this.productForm = {};
+          this.fetchProducts();
+        } else {
+          throw new Error(data.message || 'Failed to add product');
+        }
+      } catch (error) {
+        console.error('Error adding product:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+
     /**
      * Edit product details
      * @param {Object} product - Product to edit
@@ -247,20 +299,99 @@ export default {
       this.showAddProductModal = true
     },
 
-    /**
-     * Delete product
-     * @param {number} productId - ID of product to delete
-     */
-    deleteProduct(productId) {
-      if (confirm('Are you sure you want to delete this product?')) {
-        this.products = this.products.filter(p => p.id !== productId)
+    async destroyProduct(productId) {
+      try {
+        const confirmed = confirm('Are you sure you want to delete this product?');
+        if (!confirmed) return;
+
+        const response = await fetch(`/api/products/delete/${productId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to delete product');
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          console.log('Product deleted successfully');
+          this.fetchProducts(); // refresh list
+        } else {
+          throw new Error(data.message || 'Delete failed');
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error);
       }
     },
 
-    /**
-     * Save product (create or update)
-     */
+    async updateProduct(productId) {
+      try {
+        const response = await fetch(`/api/products/update/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.productForm)
+        });
+
+        if (!response.ok) throw new Error('Failed to update product');
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          console.log('Product updated');
+          this.showAddProductModal = false;
+          this.storeProducts(); // refresh list
+        } else {
+          throw new Error(data.message || 'Update failed');
+        }
+      } catch (error) {
+        console.error('Error updating product:', error);
+      }
+    },
+
+    async fetchOrderHistory() {
+      try {
+        const userId = localStorage.getItem('userId');
+        const res = await fetch(`/api/order/history/vendor/${userId}`);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          this.orders = data.data.map(order => ({
+            id: order.order_id,
+            status: order.status,
+            customerName: 'Customer',
+            customerEmail: 'unknown@example.com',
+            total: order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            items: order.items.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+              image: item.image_url
+            }))
+          }));
+        } else {
+          this.orders = [];
+          console.warn('No orders found');
+        }
+      } catch (err) {
+        console.error('Failed to fetch order history', err);
+      }
+    },
+    async fetchUserProfile() {
+      const username = localStorage.getItem('userId');
+      console.log("here"+username)
+      try {
+        const res = await fetch(`/api/profile/${username}`);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          this.userName = data.data.fullname;
+          this.userAvatar = `${data.data.avatar}`;
+        } else {
+          console.warn('Profile not found');
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    },
     saveProduct() {
+      this.storeProduct();
       if (this.editingProduct) {
         const index = this.products.findIndex(p => p.id === this.editingProduct.id)
         this.products[index] = { ...this.editingProduct, ...this.productForm }
@@ -277,17 +408,9 @@ export default {
         price: '',
         stock: '',
         description: '',
-        image: ''
+        image_url: ''
       }
-    },
-
-    /**
-     * Update order status
-     * @param {Object} order - Order to update
-     */
-    updateOrderStatus(order) {
-      // TODO: Implement order status update logic
-      console.log('Updating order status:', order)
+      this.fetchProducts();
     },
 
     /**
@@ -336,6 +459,13 @@ export default {
     removeComponent(index) {
       this.storeLayout.splice(index, 1)
     }
+  },
+  watch: {
+    activeSection(val) {
+      if (val === 'orders') {
+        this.fetchOrderHistory();
+      }
+    }
   }
 }
 </script>
@@ -351,7 +481,7 @@ export default {
   width: 250px;
   background-color: white;
   padding: 20px;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .user-info {
@@ -400,7 +530,7 @@ export default {
   background-color: white;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .section-header {
@@ -451,7 +581,8 @@ export default {
   margin-top: 10px;
 }
 
-.edit-btn, .delete-btn {
+.edit-btn,
+.delete-btn {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
@@ -569,7 +700,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -624,6 +755,7 @@ export default {
   color: white;
   cursor: pointer;
 }
+
 .logout-section {
   margin-top: auto;
   padding-top: 350px;
@@ -649,4 +781,4 @@ export default {
   background-color: #ff1744;
   color: #eee;
 }
-</style> 
+</style>
