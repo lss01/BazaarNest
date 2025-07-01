@@ -36,6 +36,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { jwtDecode } from 'jwt-decode'
 
 const router = useRouter()
 const username = ref('')
@@ -54,32 +55,39 @@ const handleLogin = async () => {
         password: password.value,
         role: role.value
       })
-    })
+    });
 
-    const result = await response.json()
+    const text = await response.text();
+    try {
+      const result = JSON.parse(text);
 
-    if (result.status === 'success') {
-      localStorage.setItem('token', result.token)
-      localStorage.setItem('userRole', result.role)
-      localStorage.setItem('username', username.value)
-      localStorage.setItem('userId', result.userId)
-      localStorage.setItem('avatar', result.avatar || '')
-      alert('Login successful!')
+      if (result.status === 'success') {
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('userRole', result.role);
+        localStorage.setItem('username', username.value);
+        localStorage.setItem('userId', result.userId);
+        localStorage.setItem('avatar', result.avatar || '');
+        alert('Login successful!');
 
-      if (role.value === 'buyer') {
-        router.push('/home')
+        if (role.value === 'buyer') {
+          router.push('/home');
+        } else {
+          router.push('/seller-dashboard');
+        }
       } else {
-        router.push('/seller-dashboard')
+        alert(result.message || 'Login failed');
       }
-    } else {
-      alert(result.message)
+    } catch (jsonError) {
+      console.error('Failed to parse JSON:', jsonError);
+      console.error('Raw response was:', text);
+      alert('Unexpected response from server.');
     }
 
   } catch (error) {
-    console.error('Login failed:', error)
-    alert('Login failed. Please try again.')
+    console.error('Login failed:', error);
+    alert('Login failed. Please try again.');
   }
-}
+};
 </script>
 
 <style scoped>

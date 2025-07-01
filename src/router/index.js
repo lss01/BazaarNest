@@ -7,6 +7,7 @@ import Cart from '../views/Cart.vue'
 import BuyerDashboard from '../views/BuyerDashboard.vue'
 import StorePage from '../views/StorePage.vue'
 import SellerDashboard from '../views/SellerDashboard.vue'
+import { jwtDecode } from 'jwt-decode'
 /**
  * Router configuration for the application
  * Defines routes for login, registration, home pages, and product details
@@ -71,24 +72,44 @@ const router = createRouter({
  * Redirects to login page if route requires authentication and user is not logged in
  */
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('token')
+  const token = localStorage.getItem('token')
   const userRole = localStorage.getItem('userRole')
 
+  if (token) {
+    try {
+      const decoded = jwtDecode(token)
+      const isExpired = decoded.exp * 1000 < Date.now()
+
+      if (isExpired) {
+        // Token expired, clear storage and redirect
+        localStorage.clear()
+        alert('Session expired. Please log in again.')
+        return next('/login')
+      }
+    } catch (err) {
+      // Invalid token format
+      localStorage.clear()
+      alert('Invalid session. Please log in again.')
+      return next('/login')
+    }
+  }
+
+  const isAuthenticated = !!token
+
   if (to.meta.requiresAuth && !isAuthenticated) {
-    // Not logged in but trying to visit a protected page
     next('/login')
   } else if (to.path === '/login' && isAuthenticated) {
-    // Logged in and visiting /login again
     if (userRole === 'buyer') {
       next('/home')
     } else {
       next('/seller-dashboard')
     }
-  } else if (['/home', '/cart', '/product/:id', '/buyer-dashboard'].includes(to.path) && userRole !== 'buyer') {
-    // Seller tries to visit buyer pages
+  } else if (
+    ['home', 'cart', 'product-detail', 'buyer-dashboard'].includes(to.name) &&
+    userRole !== 'buyer'
+  ) {
     next('/seller-dashboard')
-  } else if (to.path === '/seller-dashboard' && userRole !== 'seller') {
-    // Buyer tries to visit seller dashboard
+  } else if (to.name === 'seller-dashboard' && userRole !== 'seller') {
     next('/home')
   } else {
     next()
